@@ -36,7 +36,9 @@ export const getAnalysisDocuments = ({ page = 0, size = 10, signal } = {}) => {
   return request(`${ANALYSES_PATH}?${params.toString()}`, {
     auth: true,
     signal,
-  })
+  }).then((response) =>
+    unwrapAnalysisData(response, '遺꾩꽍 臾몄꽌 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??'),
+  )
 }
 
 export const getAnalysis = (analysisId, options = {}) => {
