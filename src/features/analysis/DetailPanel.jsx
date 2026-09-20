@@ -618,13 +618,13 @@ export function getDetailHtml(item, A) {
     if (v.nDirect)
       overlapRecs.push({
         p: 1,
-        t: '중복 행사와 셔틀·숙박 공동 운영 협의',
+        t: '중복 행사와 셔틀 공동 운영 협의',
         d: `${v.cf
           .filter((c) => c.lv === 'direct')
           .map((c) => c.n)
           .join(
             ', ',
-          )}와 권역 순환 셔틀을 공동 운영하면 경합을 연계로 바꿀 수 있습니다. 숙박은 개최 4개월 전 블록 예약으로 객실을 선점해야 합니다.`,
+          )}와 권역 순환 셔틀을 공동 운영하면 경합을 연계로 바꿀 수 있습니다.`,
       })
     if (v.nDirect || v.nNear)
       overlapRecs.push({
@@ -646,7 +646,7 @@ export function getDetailHtml(item, A) {
       sec(
         1,
         '핵심 지표',
-        `<div class="metricrow c3">${mt('위험 수준', v.v4, '스코어 미반영 진단', true)}${mt('기간 직접 중복', `${v.nDirect}<small>건</small>`, '반경 60km 이내')}${mt('인접 시기 행사', `${v.nNear}<small>건</small>`, '±3일 이내')}</div><div class="metricrow c2" style="margin-top:9px">${mt('숙박 경합 압력', `${v.stayPressure}<small>%</small>`, `중복 행사 숙박 수요 추정 ${fmt(v.rivalStayDemand)}명 / 권역 수용 ${fmt(v.stayRooms * 2.2)}명`)}${mt('검토 범위', `${dfmt(sd)}~${dfmt(ed)}`, '최근 5년 중 3회 이상 개최된 행사만 집계')}</div>`,
+        `<div class="metricrow c3">${mt('위험 수준', v.v4, '스코어 미반영 진단', true)}${mt('기간 직접 중복', `${v.nDirect}<small>건</small>`, '반경 60km 이내')}${mt('인접 시기 행사', `${v.nNear}<small>건</small>`, '±3일 이내')}</div><div class="metricrow" style="margin-top:9px">${mt('검토 범위', `${dfmt(sd)}~${dfmt(ed)}`, '최근 5년 중 3회 이상 개최된 행사만 집계')}</div>`,
       ) +
       sec(
         2,
@@ -660,7 +660,7 @@ export function getDetailHtml(item, A) {
         '결과 해석',
         content.detail
           ? `<div class="readbox read"><p>${content.detail}</p></div>`
-          : `<div class="readbox read"><p>${v.nDirect ? `개최 기간에 직접 겹치는 행사가 <strong>${v.nDirect}건</strong> 있습니다. 가장 가까운 사례는 ${v.cf[0].n}(${v.cf[0].km}km, 최근 5년 ${v.cf[0].held}회 개최, 규모 ${fmt(v.cf[0].scale)}명)입니다. 같은 권역 방문객이 두 행사로 나뉘고, 숙박·주차·셔틀 인력이 동시에 경합합니다.` : v.nNear ? `기간이 직접 겹치는 행사는 없습니다. 다만 전후 3일 내 ${v.nNear}건이 있어 숙박 예약과 홍보 노출이 분산될 수 있습니다.` : '같은 시기 인접 권역의 반복 개최 행사가 확인되지 않아, 일정 측면의 경합 요인은 낮습니다.'}</p><p>${v.best && v.best.w < v.nDirect * 3 + v.nNear ? `개최일을 ${v.best.off > 0 ? '+' : ''}${v.best.off}일 이동하면 중복 가중치 ${v.nDirect * 3 + v.nNear}에서 ${v.best.w}로 낮아집니다(${dfmt(dadd(sd, v.best.off))}~${dfmt(dadd(ed, v.best.off))}).` : '검토 범위(±14일) 안에서 현재 일정보다 유리한 대체 구간은 확인되지 않았습니다.'}</p></div>`,
+          : `<div class="readbox read"><p>${v.nDirect ? `개최 기간에 직접 겹치는 행사가 <strong>${v.nDirect}건</strong> 있습니다. 가장 가까운 사례는 ${v.cf[0].n}(${v.cf[0].km}km, 최근 5년 ${v.cf[0].held}회 개최, 규모 ${fmt(v.cf[0].scale)}명)입니다. 같은 권역 방문객이 두 행사로 나뉘고, 주차·셔틀 인력이 동시에 경합합니다.` : v.nNear ? `기간이 직접 겹치는 행사는 없습니다. 다만 전후 3일 내 ${v.nNear}건이 있어 홍보 노출이 분산될 수 있습니다.` : '같은 시기 인접 권역의 반복 개최 행사가 확인되지 않아, 일정 측면의 경합 요인은 낮습니다.'}</p><p>${v.best && v.best.w < v.nDirect * 3 + v.nNear ? `개최일을 ${v.best.off > 0 ? '+' : ''}${v.best.off}일 이동하면 중복 가중치 ${v.nDirect * 3 + v.nNear}에서 ${v.best.w}로 낮아집니다(${dfmt(dadd(sd, v.best.off))}~${dfmt(dadd(ed, v.best.off))}).` : '검토 범위(±14일) 안에서 현재 일정보다 유리한 대체 구간은 확인되지 않았습니다.'}</p></div>`,
       ) +
       sec(4, '권장 수정사항', recs(content.recommendations || overlapRecs)) +
       `<p class="note">이 진단은 행사 이력만으로 판단하며 일반 관광객 수를 기준에 포함하지 않습니다. 흥행 스코어에는 반영되지 않습니다.</p>`

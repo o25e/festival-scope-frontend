@@ -1188,13 +1188,7 @@ export function analyze(p) {
     )
       best = { off, w: ww, c }
   }
-  const stayRooms = R.poi.r15.rooms,
-    rivalScale = cf
-      .filter((c) => c.lv === 'direct')
-      .reduce((a, c) => a + c.scale, 0),
-    rivalStayDemand = Math.round(rivalScale * 0.06),
-    stayPressure = Math.round((rivalStayDemand / (stayRooms * 2.2)) * 100),
-    W = R.weather,
+  const W = R.weather,
     rainP = W.rainYears[m] * 10,
     heavy = W.heavyYears[m],
     wind = W.windYears[m],
@@ -1307,9 +1301,6 @@ export function analyze(p) {
       nNear,
       v4,
       best,
-      stayPressure,
-      stayRooms,
-      rivalStayDemand,
       rainP,
       heavy,
       wind,

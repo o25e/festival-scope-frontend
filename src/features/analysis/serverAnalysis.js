@@ -516,9 +516,6 @@ const normalizeConflictModel = (baseAnalysis, summary, detail) => {
     nNear: conflictCount(detail, ['nearbyPeriodCount', 'adjacentEventCount', 'adjacentOverlapEventCount', 'nearbyEventCount', 'nearConflictCount'], events, 'near'),
     cf: events || [],
     overlapDays,
-    stayPressure: asNumber(conflictValue(detail, payload, ['stayPressure', 'accommodationPressure'])),
-    rivalStayDemand: asNumber(conflictValue(detail, payload, ['rivalStayDemand', 'competitorStayDemand'])),
-    stayRooms: asNumber(conflictValue(detail, payload, ['stayRooms', 'availableRooms', 'accommodationRooms'])),
     analysisPeriod:
       period ||
       (historyStartYear !== null && historyStartYear !== undefined && historyEndYear !== null && historyEndYear !== undefined

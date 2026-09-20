@@ -247,7 +247,7 @@ export function cardData(item, A) {
       read:
         content.summary ||
         (v.nDirect
-          ? `개최 기간에 반경 60km 내 행사 ${v.nDirect}건이 겹칩니다. 관람객 분산과 숙박 경합이 예상됩니다.`
+          ? `개최 기간에 반경 60km 내 행사 ${v.nDirect}건이 겹칩니다. 관람객 분산이 예상됩니다.`
           : v.nNear
             ? `직접 겹치는 행사는 없으나 전후 3일 내 인접 권역 행사가 ${v.nNear}건 있습니다.`
             : '반경 80km 내에서 같은 시기에 반복 개최되는 행사가 확인되지 않았습니다.'),
