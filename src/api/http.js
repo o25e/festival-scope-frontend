@@ -10,6 +10,8 @@ const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(
   '',
 )
 
+export const getApiUrl = (path) => `${API_BASE_URL}${path}`
+
 export class ApiError extends Error {
   constructor(message, { status = 0, data = null, cause = null } = {}) {
     super(message)
@@ -165,6 +167,8 @@ const getRefreshedAccessToken = () => {
   return refreshPromise
 }
 
+export const refreshAccessToken = () => getRefreshedAccessToken()
+
 export async function request(
   path,
   {
@@ -192,7 +196,7 @@ export async function request(
 
   let response
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(getApiUrl(path), {
       method,
       headers: requestHeaders,
       body:

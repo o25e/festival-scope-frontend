@@ -12,6 +12,7 @@ import {
   getTourismLinkageAnalysis,
   getTrendFitAnalysis,
   getWeatherRiskAnalysis,
+  streamAnalysisProgress,
 } from './api/analyses'
 import { ApiError } from './api/http'
 import { Header } from './components/AppHeader'
@@ -149,10 +150,19 @@ export default function App() {
     [registeredPlanId, setRegisteredPlanId] = useState(null),
     [registeredAnalysisId, setRegisteredAnalysisId] = useState(null),
     [isAnalysisComplete, setIsAnalysisComplete] = useState(false),
+    [analysisProgress, setAnalysisProgress] = useState(null),
+    [isAnalysisFailed, setIsAnalysisFailed] = useState(false),
     [autoFilledFields, setAutoFilledFields] = useState({})
   const registrationInFlightRef = useRef(false)
+  const analysisStreamControllerRef = useRef(null)
   const planRef = useRef(plan)
   planRef.current = plan
+  const cancelAnalysisStream = () => {
+    analysisStreamControllerRef.current?.abort()
+    analysisStreamControllerRef.current = null
+  }
+
+  useEffect(() => cancelAnalysisStream, [])
   const A = useMemo(
       () =>
         analysis ||
@@ -288,6 +298,7 @@ export default function App() {
   }, [index])
 
   const openDocuments = () => {
+      cancelAnalysisStream()
       setOpenKey(null)
       setIsSample(false)
       setActiveDocument(null)
@@ -299,10 +310,13 @@ export default function App() {
       setRegisteredPlanId(null)
       setRegisteredAnalysisId(null)
       setIsAnalysisComplete(false)
+      setAnalysisProgress(null)
+      setIsAnalysisFailed(false)
       navigate(isAuthenticated ? '/documents' : '/')
     },
     home = openDocuments,
     startNewPlan = () => {
+      cancelAnalysisStream()
       setOpenKey(null)
       setIsSample(false)
       setActiveDocument(null)
@@ -315,10 +329,13 @@ export default function App() {
       setRegisteredPlanId(null)
       setRegisteredAnalysisId(null)
       setIsAnalysisComplete(false)
+      setAnalysisProgress(null)
+      setIsAnalysisFailed(false)
       setStage('input')
       navigate('/plans/new')
     },
     goEdit = () => {
+      cancelAnalysisStream()
       setOpenKey(null)
       setStep(1)
       setRegistrationError('')
@@ -326,6 +343,8 @@ export default function App() {
       setRegisteredPlanId(null)
       setRegisteredAnalysisId(null)
       setIsAnalysisComplete(false)
+      setAnalysisProgress(null)
+      setIsAnalysisFailed(false)
       setStage('input')
       navigate('/plans/new')
     },
@@ -362,6 +381,8 @@ export default function App() {
     setRegisteredPlanId(null)
     setRegisteredAnalysisId(null)
     setIsAnalysisComplete(false)
+    setAnalysisProgress(null)
+    setIsAnalysisFailed(false)
     setStage('input')
     navigate('/plans/new')
   }
@@ -373,10 +394,14 @@ export default function App() {
     setIsRegisteringPlan(true)
     setRegistrationError('')
     let phase = 'registration'
+    const analysisController = new AbortController()
+    analysisStreamControllerRef.current = analysisController
 
     try {
       const payload = buildFestivalPlanPayload(plan)
-      const response = await createFestivalPlan(payload)
+      const response = await createFestivalPlan(payload, {
+        signal: analysisController.signal,
+      })
       const planId = getFestivalPlanId(response)
       if (!planId) {
         throw new ApiError('기획안 등록 응답에서 planId를 확인하지 못했습니다.', {
@@ -389,9 +414,13 @@ export default function App() {
       setRegisteredAnalysisId(null)
       setAnalysis(null)
       setIsAnalysisComplete(false)
+      setAnalysisProgress(null)
+      setIsAnalysisFailed(false)
       setStage('loading')
       phase = 'analysis-execution'
-      const executionResponse = await executeFestivalPlanAnalysis(planId)
+      const executionResponse = await executeFestivalPlanAnalysis(planId, {
+        signal: analysisController.signal,
+      })
       const analysisId = getAnalysisId(executionResponse)
       if (!analysisId) {
         throw new ApiError('분석 실행 응답에서 analysisId를 확인하지 못했습니다.', {
@@ -400,8 +429,25 @@ export default function App() {
       }
       setRegisteredAnalysisId(analysisId)
 
+      phase = 'analysis-progress'
+      const terminalProgress = await streamAnalysisProgress(analysisId, {
+        signal: analysisController.signal,
+        onProgress: (progress) => {
+          setAnalysisProgress(progress)
+          if (progress.step === 'ANALYSIS' && progress.status === 'FAILED') {
+            setIsAnalysisFailed(true)
+          }
+        },
+      })
+      if (terminalProgress?.status === 'FAILED') {
+        setIsAnalysisFailed(true)
+        return
+      }
+
       phase = 'analysis-summary'
-      const summary = await getAnalysis(analysisId)
+      const summary = await getAnalysis(analysisId, {
+        signal: analysisController.signal,
+      })
       const supportedItemTypes = ['TARGET_VISITOR', 'TREND_FIT', 'DEMAND_FIT', 'CONFLICT_RISK', 'WEATHER_RISK', 'TOURISM_LINKAGE'].filter((itemType) =>
         summary?.items?.some((item) => item?.itemType === itemType),
       )
@@ -417,14 +463,35 @@ export default function App() {
       const detailEntries = await Promise.all(
         supportedItemTypes.map(async (itemType) => [
           itemType,
-          await detailGetters[itemType](analysisId),
+          await detailGetters[itemType](analysisId, {
+            signal: analysisController.signal,
+          }),
         ]),
       )
       const details = Object.fromEntries(detailEntries)
       const serverAnalysis = mergeServerAnalysis(analyze(plan), summary, details)
       setAnalysis(serverAnalysis)
       setIsAnalysisComplete(true)
+      setIsAnalysisFailed(false)
     } catch (error) {
+      if (error?.name === 'AbortError' || error?.cause?.name === 'AbortError') {
+        return
+      }
+
+      if (phase === 'analysis-progress') {
+        setAnalysisProgress((previous) => ({
+          ...(previous || {}),
+          step: previous?.step || 'ANALYSIS',
+          status: 'FAILED',
+          message:
+            error?.message ||
+            '분석 진행 중 문제가 발생했습니다.',
+        }))
+        setIsAnalysisFailed(true)
+        setStage('loading')
+        return
+      }
+
       setRegistrationError(
         error?.message || '축제 기획안 등록에 실패했습니다. 다시 시도해주세요.',
       )
@@ -448,6 +515,7 @@ export default function App() {
       setIsAnalysisComplete(false)
       setStage('review')
     } finally {
+      analysisStreamControllerRef.current = null
       registrationInFlightRef.current = false
       setIsRegisteringPlan(false)
     }
@@ -562,7 +630,14 @@ export default function App() {
         />
       )}
       {stage === 'loading' && (
-        <LoadingScreen plan={plan} onDone={finish} isComplete={isAnalysisComplete} />
+        <LoadingScreen
+          plan={plan}
+          onDone={finish}
+          onRetry={goEdit}
+          analysisProgress={analysisProgress}
+          isComplete={isAnalysisComplete}
+          isFailed={isAnalysisFailed}
+        />
       )}
       {stage === 'result' && A && (
         <ResultScreen
