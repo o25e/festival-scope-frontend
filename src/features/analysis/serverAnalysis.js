@@ -30,6 +30,13 @@ const getScore = (item) =>
     ? asNumber(item.score)
     : null
 
+const stripTourismLinkageScore = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+  const withoutScore = { ...value }
+  delete withoutScore.score
+  return withoutScore
+}
+
 const normalizePriority = (value) => {
   const numeric = asNumber(value)
   if (numeric !== null) return numeric
@@ -143,10 +150,13 @@ export const normalizeAnalysisReport = (response) => {
         : response || {}
   const summary = root?.summary || {}
   const summaryItems = Array.isArray(summary.items) ? summary.items : []
+  const normalizedSummaryItems = summaryItems.map((item) =>
+    item?.itemType === 'TOURISM_LINKAGE' ? stripTourismLinkageScore(item) : item,
+  )
   const items = Object.fromEntries(
     REPORT_ITEM_TYPES.map((itemType) => [
       itemType,
-      summaryItems.find((item) => item?.itemType === itemType) || null,
+      normalizedSummaryItems.find((item) => item?.itemType === itemType) || null,
     ]),
   )
   const details = {}
@@ -159,7 +169,12 @@ export const normalizeAnalysisReport = (response) => {
       resultRows.find((item) => item?.itemType === itemType),
     ]
     const detail = candidates.find((candidate) => candidate !== null && candidate !== undefined)
-    if (detail !== undefined) details[itemType] = unwrapReportDetail(detail)
+    if (detail !== undefined) {
+      const normalizedDetail = unwrapReportDetail(detail)
+      details[itemType] = itemType === 'TOURISM_LINKAGE'
+        ? stripTourismLinkageScore(normalizedDetail)
+        : normalizedDetail
+    }
   })
 
   const summaryRecommendations = summaryItems.flatMap((item) =>
@@ -195,7 +210,7 @@ export const normalizeAnalysisReport = (response) => {
 
   return {
     raw: root,
-    summary,
+    summary: { ...summary, items: normalizedSummaryItems },
     items,
     details,
     recommendations,
@@ -274,11 +289,7 @@ const normalizeTourismLinkageModel = (summary, detail) => {
   const regionalIndicators = detail?.regionalIndicators && typeof detail.regionalIndicators === 'object'
     ? detail.regionalIndicators
     : linkage.regionalIndicators || {}
-  const score = Object.prototype.hasOwnProperty.call(detail || {}, 'score')
-    ? asNumber(detail.score)
-    : getScore(summary)
   return {
-    score,
     totalCandidatePoiCount: asNumber(linkage.totalCandidatePoiCount),
     tourismCultureCount: asNumber(linkage.tourismCultureCount),
     foodShoppingCount: asNumber(linkage.foodShoppingCount),
@@ -1018,7 +1029,7 @@ export const mergeServerAnalysis = (baseAnalysis, summary, details = {}, report 
   const demandSummary = getItem(summary, 'DEMAND_FIT')
   const conflictSummary = getItem(summary, 'CONFLICT_RISK')
   const weatherSummary = getItem(summary, 'WEATHER_RISK')
-  const linkageSummary = getItem(summary, 'TOURISM_LINKAGE')
+  const linkageSummary = stripTourismLinkageScore(getItem(summary, 'TOURISM_LINKAGE'))
   const hasTargetDetail =
     Object.prototype.hasOwnProperty.call(details, 'TARGET_VISITOR') &&
     details.TARGET_VISITOR !== null &&
@@ -1037,7 +1048,9 @@ export const mergeServerAnalysis = (baseAnalysis, summary, details = {}, report 
   const hasConflictDetail = Object.prototype.hasOwnProperty.call(details, 'CONFLICT_RISK') && details.CONFLICT_RISK !== null && details.CONFLICT_RISK !== undefined
   const conflictDetail = hasConflictDetail ? details.CONFLICT_RISK : null
   const hasLinkageDetail = Object.prototype.hasOwnProperty.call(details, 'TOURISM_LINKAGE') && details.TOURISM_LINKAGE !== null && details.TOURISM_LINKAGE !== undefined
-  const linkageDetail = hasLinkageDetail ? details.TOURISM_LINKAGE : null
+  const linkageDetail = hasLinkageDetail
+    ? stripTourismLinkageScore(details.TOURISM_LINKAGE)
+    : null
   const linkage = hasLinkageDetail ? normalizeTourismLinkageModel(linkageSummary, linkageDetail) : null
   const conflict = hasConflictDetail ? normalizeConflictModel(baseAnalysis, conflictSummary, conflictDetail) : null
   const totalScore = Object.prototype.hasOwnProperty.call(summary || {}, 'totalScore')
@@ -1195,7 +1208,6 @@ export const mergeServerAnalysis = (baseAnalysis, summary, details = {}, report 
       ...demand.v,
       ...(conflict || {}),
       ...(weather?.v || {}),
-      ...(linkage ? { s6: linkage.score, v6: null } : {}),
     },
   }
 }

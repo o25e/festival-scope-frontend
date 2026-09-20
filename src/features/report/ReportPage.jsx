@@ -5,7 +5,7 @@ import { ITEMS, cardData } from '../analysis/analysisData'
 import { getDetailHtml } from '../analysis/DetailPanel'
 
 export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아가기' }) {
-  const cards = ITEMS.map((item) => ({ item, data: cardData(item, A) }))
+  const cards = ITEMS.map((item) => ({ item, data: cardData(item, A, { report: true }) }))
   const recommendations = useMemo(() => {
     if (A.report?.hasRecommendations) {
       return (A.report.recommendations || []).map((recommendation, i) => ({
@@ -183,8 +183,11 @@ function ReportGroup({ title, tag, cards }) {
             </div>
             {data.sub?.length > 0 && (
               <div className="src">
-                {data.sub.map(([label, value]) => (
-                  <span key={label}>{label}: {value}</span>
+                {data.sub.map(([label, value], index) => (
+                  <span key={label}>
+                    {index > 0 ? ' · ' : ''}
+                    {label}: {value}
+                  </span>
                 ))}
               </div>
             )}

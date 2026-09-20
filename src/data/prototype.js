@@ -1239,13 +1239,8 @@ export function analyze(p) {
     risk: rainP >= 40 && weatherSensitiveShare >= 60,
   })
   const P = R.poi,
-    tourS = clamp((P.r15.tour / 40) * 100, 0, 100),
-    foodS = clamp((P.r15.food / 700) * 100, 0, 100),
     stayCap = P.r15.rooms * 2.2,
     stayCov = (stayCap / daily) * 100,
-    stayS = clamp((stayCov / 60) * 100, 0, 100),
-    s6 = Math.round(0.4 * tourS + 0.25 * foodS + 0.35 * stayS),
-    v6 = s6 >= 70 ? '높음' : s6 >= 48 ? '보통' : '낮음',
     composite = Math.round((s1 + s2 + s3) / 3),
     grade =
       composite >= 85
@@ -1308,13 +1303,8 @@ export function analyze(p) {
       wRisk,
       v5,
       wFlags,
-      tourS,
-      foodS,
       stayCap,
       stayCov,
-      stayS,
-      s6,
-      v6,
     },
   }
 }

@@ -55,6 +55,60 @@ const REPORT_ITEM_TYPES = {
   link: 'TOURISM_LINKAGE',
 }
 
+const isCompletePoiCount = (value) => value !== null && value !== undefined
+
+const tourismLinkageSummary = (A, content, reportItem, reportDetail) => {
+  const linkage = A.linkage
+  if (!linkage) return '-'
+
+  const counts = [
+    linkage.tourismCultureCount,
+    linkage.foodShoppingCount,
+    linkage.accommodationCount,
+  ]
+  const candidateSummaries = [
+    reportItem?.summary,
+    reportDetail?.resultInterpretation?.summary,
+    reportDetail?.resultInterpretation?.detail,
+    content.summary,
+  ].filter((summary) => typeof summary === 'string' && summary.trim())
+  const matchingSummary = candidateSummaries.find((summary) =>
+    counts.every((count) => !isCompletePoiCount(count) || summary.includes(String(count))),
+  )
+  if (matchingSummary) return matchingSummary
+
+  if (counts.every(isCompletePoiCount) && isCompletePoiCount(linkage.totalCandidatePoiCount)) {
+    return `전체 POI ${linkage.totalCandidatePoiCount}개는 관광·문화 ${linkage.tourismCultureCount}곳, 음식·쇼핑 ${linkage.foodShoppingCount}곳, 숙박 ${linkage.accommodationCount}곳으로 구성됩니다.`
+  }
+  return '-'
+}
+
+const tourismLinkageSummaryItem = (A) =>
+  A.report?.items?.TOURISM_LINKAGE || A.server?.items?.TOURISM_LINKAGE?.summary || null
+
+const tourismLinkageSummaryCardData = (item, A, reportItem) => {
+  const primaryMetric = reportItem.primaryMetric || {}
+  const metrics = Array.isArray(reportItem.metrics) ? reportItem.metrics : []
+  const statusLevel = String(reportItem.statusLevel ?? '').toUpperCase()
+  const tone =
+    statusLevel === 'POSITIVE' || statusLevel === 'GOOD' || statusLevel === 'LOW'
+      ? 'g'
+      : statusLevel === 'NEGATIVE' || statusLevel === 'DANGER' || statusLevel === 'HIGH'
+        ? 'r'
+        : 'n'
+  return {
+    title: reportItem.title ?? item.name,
+    pill: reportItem.status ?? '관광 연계 잠재력',
+    tone,
+    metric: primaryMetric.value ?? '-',
+    unit: primaryMetric.label ?? '',
+    sub: metrics.map((metric) => [metric?.label ?? '-', metric?.value ?? '-']),
+    read: reportItem.summary ?? '-',
+    bars: [],
+    chart: null,
+  }
+}
+
 const reportItemData = (item, A) => {
   const itemType = REPORT_ITEM_TYPES[item.key]
   const reportItem = itemType ? A.report?.items?.[itemType] : null
@@ -92,8 +146,16 @@ const reportItemData = (item, A) => {
   }
 }
 
-export function cardData(item, A) {
-  const reportData = reportItemData(item, A)
+export function cardData(item, A, options = {}) {
+  const tourismSummaryItem = item.key === 'link' ? tourismLinkageSummaryItem(A) : null
+  if (item.key === 'link' && tourismSummaryItem) {
+    return tourismLinkageSummaryCardData(item, A, tourismSummaryItem)
+  }
+  if (item.key === 'link' && options.report) {
+    const reportData = reportItemData(item, A)
+    if (reportData) return reportData
+  }
+  const reportData = item.key === 'link' ? null : reportItemData(item, A)
   if (reportData) return reportData
 
   const v = A.v
@@ -267,37 +329,49 @@ export function cardData(item, A) {
       highlight: A.m,
     }
   if (item.key === 'link' && A.linkage) {
-    const score = A.linkage.score
-    const tone = score === null ? 'w' : score >= 70 ? 'g' : score >= 48 ? 'w' : 'r'
+    const reportItem = A.report?.items?.TOURISM_LINKAGE
+    const reportDetail = A.report?.details?.TOURISM_LINKAGE
+    const totalPoiCount = A.linkage.totalCandidatePoiCount
     return {
-      pill: score === null ? '관광 연계 잠재력' : `연계 ${score >= 70 ? '높음' : score >= 48 ? '보통' : '낮음'}`,
-      tone,
-      metric: score === null ? '-' : score,
-      unit: '/100',
+      pill: '관광 연계 잠재력',
+      tone: 'n',
+      metric: totalPoiCount ?? '-',
+      unit: totalPoiCount === null || totalPoiCount === undefined ? '' : '개',
       sub: [
-        ['전체 후보 POI', `${A.linkage.totalCandidatePoiCount ?? '-'}`],
-        ['관광·문화', `${A.linkage.tourismCultureCount ?? '-'}`],
-        ['음식·쇼핑', `${A.linkage.foodShoppingCount ?? '-'}`],
-        ['숙박', `${A.linkage.accommodationCount ?? '-'}`],
+        ['관광·문화', `${A.linkage.tourismCultureCount ?? '-'}곳`],
+        ['음식·쇼핑', `${A.linkage.foodShoppingCount ?? '-'}곳`],
+        ['숙박', `${A.linkage.accommodationCount ?? '-'}곳`],
       ],
-      read: content.summary ?? '-',
+      read: tourismLinkageSummary(A, content, reportItem, reportDetail),
+      bars: [],
+    }
+  }
+  if (item.key === 'link' && options.report) {
+    return {
+      pill: '관광 연계 잠재력',
+      tone: 'n',
+      metric: '-',
+      unit: '',
+      sub: [],
+      read: '-',
       bars: [],
     }
   }
   const P = A.R.poi
   return {
-    pill: `잠재력 ${v.v6}`,
-    tone: v.v6 === '높음' ? 'g' : v.v6 === '보통' ? 'w' : 'r',
-    metric: P.r15.tour + P.r15.stay,
-    unit: '반경 15km 연계 가능 자원',
+    pill: '관광 연계 잠재력',
+    tone: 'n',
+    metric: '-',
+    unit: '',
     sub: [
       ['관광지', `${P.r15.tour}곳`],
+      ['음식점·상권', `${P.r15.food}개`],
       ['숙박', `${P.r15.stay}곳`],
       ['체류 수용률', `${Math.round(v.stayCov)}%`],
     ],
     read:
       content.summary ||
-      `관광지 밀도는 ${v.tourS >= 70 ? '충분' : '보통'}하지만 숙박 수용은 일평균 방문객의 ${Math.round(v.stayCov)}% 수준입니다.`,
+      `반경 15km 안에 관광지 ${P.r15.tour}곳, 음식점·상권 ${fmt(P.r15.food)}개, 숙박 ${P.r15.stay}곳이 있으며, 숙박 수용은 일평균 방문객의 ${Math.round(v.stayCov)}% 수준입니다.`,
     bars: [],
   }
 }

@@ -225,7 +225,13 @@ export default function App() {
 
     Promise.resolve()
       .then(() => getAnalysisReport(route.analysisId, { signal: controller.signal }))
-      .then((response) => {
+      .then(async (response) => ({
+        response,
+        tourismLinkageDetail: await getTourismLinkageAnalysis(route.analysisId, {
+          signal: controller.signal,
+        }),
+      }))
+      .then(({ response, tourismLinkageDetail }) => {
         if (!active) return
         const reportName = response?.summary?.festivalName
         const currentPlan = planRef.current
@@ -239,7 +245,17 @@ export default function App() {
           reportPlan.start && reportPlan.end
             ? reportPlan
             : normalizeFestivalPlan({ ...SAMPLE, ...reportPlan })
-        const nextAnalysis = mergeAnalysisReport(analyze(basePlan), response)
+        const reportWithTourismLinkageDetail = {
+          ...response,
+          details: {
+            ...(response?.details || {}),
+            TOURISM_LINKAGE: tourismLinkageDetail,
+          },
+        }
+        const nextAnalysis = mergeAnalysisReport(
+          analyze(basePlan),
+          reportWithTourismLinkageDetail,
+        )
         setPlan(reportPlan)
         setAnalysis(nextAnalysis)
         setReportState({ status: 'success', analysis: nextAnalysis, error: null })

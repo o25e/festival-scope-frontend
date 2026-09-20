@@ -768,7 +768,7 @@ export function getDetailHtml(item, A) {
       ? L.pois.map((poi) => `<tr><td><b>${poi.name || '-'}</b>${poi.address ? `<div style="color:var(--muted);font-size:11px">${poi.address}</div>` : ''}</td><td><span class="tagsm n">${poiTypeLabel(poi.poiType || poi.category)}</span></td><td class="n">${displayPoiDistance(poi)}</td></tr>`).join('')
       : '<tr><td colspan="3" style="color:var(--muted)">상세 POI 목록이 제공되지 않았습니다.</td></tr>'
     return (
-      sec(1, '핵심 지표', `<div class="metricrow c3">${mt('관광 연계 잠재력', `${L.score === null ? '-' : L.score}<small>/100</small>`, '서버 분석 점수', true)}${mt('전체 후보 POI', `${displayCount(L.totalCandidatePoiCount)}<small>곳</small>`, '서버 응답 기준')}${mt('관광·문화 / 음식·쇼핑 / 숙박', `${displayCount(L.tourismCultureCount)} / ${displayCount(L.foodShoppingCount)} / ${displayCount(L.accommodationCount)}<small>곳</small>`, '후보 POI 분류별')}`) +
+      sec(1, '핵심 지표', `<div class="metricrow c2">${mt('전체 후보 POI', `${displayCount(L.totalCandidatePoiCount)}<small>곳</small>`, '서버 응답 기준')}${mt('관광·문화 / 음식·쇼핑 / 숙박', `${displayCount(L.tourismCultureCount)} / ${displayCount(L.foodShoppingCount)} / ${displayCount(L.accommodationCount)}<small>곳</small>`, '후보 POI 분류별')}`) +
       sec(2, '판단 근거 및 데이터', `<div class="vizbox"><table class="dt"><tr><th>구분</th><th class="n">3km 이내</th><th class="n">3~5km</th><th class="n">5km 이내</th></tr>${categoryRows}</table></div><table class="dt" style="margin-top:12px"><tr><th>주요 연계 자원</th><th>구분</th><th class="n">거리</th></tr>${poiRows}</table><div class="metricrow c3" style="margin-top:12px">${regionalIndicatorCards}</div>`) +
       sec(3, '결과 해석', `<div class="readbox read"><p>${content.detail || '-'}</p></div>`) +
       sec(4, '권장 수정사항', recs(content.recommendations || [])) +
@@ -776,12 +776,13 @@ export function getDetailHtml(item, A) {
     )
   }
   const P = R.poi,
-    byType = (t) => R.poiList.filter((x) => x.t === t)
+    byType = (t) => R.poiList.filter((x) => x.t === t),
+    totalPoi = P.r15.tour + P.r15.food + P.r15.stay
   return (
     sec(
       1,
       '핵심 지표',
-      `<div class="metricrow c3">${mt('연계 잠재력', `${v.s6}<small>/100</small>`, v.v6, true)}${mt('반경 15km 관광지', `${P.r15.tour}<small>곳</small>`, `반경 5km ${P.r5.tour}곳`)}${mt('체류 수용률', `${Math.round(v.stayCov)}<small>%</small>`, `객실 ${fmt(P.r15.rooms)}실 기준`)}</div>`,
+      `<div class="metricrow c3">${mt('전체 후보 POI', `${fmt(totalPoi)}<small>곳</small>`, '반경 15km 기준')}${mt('관광지 / 음식점·상권 / 숙박', `${P.r15.tour} / ${fmt(P.r15.food)} / ${P.r15.stay}<small>곳</small>`, '반경 15km 분류별')}${mt('체류 수용률', `${Math.round(v.stayCov)}<small>%</small>`, `객실 ${fmt(P.r15.rooms)}실 기준`)}</div>`,
     ) +
     sec(
       2,

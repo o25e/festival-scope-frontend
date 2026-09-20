@@ -97,7 +97,7 @@ function ResultCard({ item, A, onOpen, selected }) {
     >
       <div className="card-top">
         <span className="card-name">
-          {item.no}. {item.name}
+          {item.no}. {item.key === 'link' ? d.title ?? item.name : item.name}
         </span>
         <span className={levelClass(d.tone)}>{d.pill}</span>
       </div>
@@ -209,9 +209,8 @@ export function ResultScreen({ A, onEdit, onReport, onOpen, openKey }) {
               ))}
             </div>
             <p className="score-note">
-              3개 항목의 동일 가중 평균입니다. 별도 진단 3건(일정 중복 {A.v.v4}{' '}
-              · 날씨 취약도 {A.v.v5} · 관광 연계 {A.v.v6})은 스코어에 반영되지
-              않습니다.
+              3개 항목의 동일 가중 평균입니다. 일정 중복·혼잡, 날씨, 관광 연계는 별도
+              진단으로 스코어에 반영되지 않습니다.
             </p>
           </div>
         </div>
