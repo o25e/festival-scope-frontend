@@ -12,6 +12,7 @@ import {
 } from '../venue/VenueLocationSearch'
 
 const MAX_PROGRAM_NAMES = 5
+const PROGRAM_SELECTION_ERROR = '핵심 프로그램을 최소 1개 선택해주세요.'
 
 const normalizeProgramName = (value) =>
   String(value ?? '').trim().replace(/\s+/g, ' ')
@@ -172,6 +173,7 @@ export function FormScreen({
     if (step >= 2 && !plan.end) e.push('개최 종료일')
     if (step >= 2 && plan.start && plan.end && plan.end < plan.start)
       e.push('개최 종료일(시작일보다 빠름)')
+    if (step >= 3 && programNames.length === 0) e.push(PROGRAM_SELECTION_ERROR)
     setErrors(e)
     return !e.length
   }
@@ -598,6 +600,7 @@ export function FormScreen({
                 label="핵심 프로그램"
                 auto={autoFilledFields.programCandidates}
                 hint="후보 중 최대 5개 선택"
+                error={errors.includes(PROGRAM_SELECTION_ERROR)}
               >
                 <div className="program-candidate-list">
                   <div className="chips">
