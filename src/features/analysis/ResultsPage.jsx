@@ -3,6 +3,9 @@ import { getLevel } from '../../data/prototype'
 import { fmt, levelClass } from '../../utils/formatters'
 import { ITEMS, cardData } from './analysisData'
 
+const VISITOR_MEDIAN_BAR_COLOR = '#CBDCE8'
+const VISITOR_TARGET_BAR_COLOR = '#12557E'
+
 function MiniBars({ values = [], highlight = null }) {
   const max = Math.max(...values, 1)
   return (
@@ -43,7 +46,7 @@ function VisitorBars({ values, maxValue }) {
         width={safeValues[0] === null ? 0 : (safeValues[0] / max) * 200}
         height="9"
         rx="1"
-        fill="#CBDCE8"
+        fill={VISITOR_MEDIAN_BAR_COLOR}
       />
       <rect
         x="0"
@@ -51,7 +54,7 @@ function VisitorBars({ values, maxValue }) {
         width={safeValues[1] === null ? 0 : (safeValues[1] / max) * 200}
         height="9"
         rx="1"
-        fill="#12557E"
+        fill={VISITOR_TARGET_BAR_COLOR}
       />
     </svg>
   )
@@ -103,8 +106,20 @@ function ResultCard({ item, A, onOpen, selected }) {
         <span>{d.unit}</span>
       </div>
       <div className="card-sub">
-        {d.sub.map(([l, v]) => (
+        {d.sub.map(([l, v], index) => (
           <span key={l}>
+            {item.key === 'visitor' && index < 2 && (
+              <i
+                className="visitor-legend-dot"
+                style={{
+                  backgroundColor:
+                    index === 0
+                      ? VISITOR_TARGET_BAR_COLOR
+                      : VISITOR_MEDIAN_BAR_COLOR,
+                }}
+                aria-hidden="true"
+              />
+            )}
             <em>{l}</em> {v}
           </span>
         ))}
@@ -114,7 +129,7 @@ function ResultCard({ item, A, onOpen, selected }) {
           values={d.bars}
           maxValue={
             Math.max(
-              ...[A.v.median, A.v.targetVisitorCount, A.v.top]
+              ...d.bars
                 .filter((value) => Number.isFinite(Number(value)))
                 .map(Number),
               1,

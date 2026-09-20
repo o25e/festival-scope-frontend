@@ -1030,7 +1030,9 @@ export const mergeServerAnalysis = (baseAnalysis, summary, details = {}, report 
   const targetVisitor =
     targetDetail?.targetVisitor && typeof targetDetail.targetVisitor === 'object'
       ? targetDetail.targetVisitor
-      : null
+      : targetDetail && typeof targetDetail === 'object' && !Array.isArray(targetDetail)
+        ? targetDetail
+        : null
   const trendDetail = details.TREND_FIT || {}
   const demandDetail = details.DEMAND_FIT || {}
   const hasWeatherDetail = Object.prototype.hasOwnProperty.call(details, 'WEATHER_RISK') && details.WEATHER_RISK !== null && details.WEATHER_RISK !== undefined
