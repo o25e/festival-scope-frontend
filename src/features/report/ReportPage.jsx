@@ -7,8 +7,10 @@ import { getDetailHtml } from '../analysis/DetailPanel'
 export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아가기' }) {
   const cards = ITEMS.map((item) => ({ item, data: cardData(item, A, { report: true }) }))
   const recommendations = useMemo(() => {
+    let normalizedRecommendations
+
     if (A.report?.hasRecommendations) {
-      return (A.report.recommendations || []).map((recommendation, i) => ({
+      normalizedRecommendations = (A.report.recommendations || []).map((recommendation, i) => ({
         source:
           recommendation.source ??
           (ITEMS.find((item) => item.key === recommendation.itemType)?.name ||
@@ -18,14 +20,12 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
         priority: recommendation.p ?? 3,
         i,
       }))
-    }
-
-    const doc = new DOMParser().parseFromString(
-      ITEMS.map((item) => getDetailHtml(item, A)).join(''),
-      'text/html',
-    )
-    return [...doc.querySelectorAll('.rec')]
-      .map((el, i) => ({
+    } else {
+      const doc = new DOMParser().parseFromString(
+        ITEMS.map((item) => getDetailHtml(item, A)).join(''),
+        'text/html',
+      )
+      normalizedRecommendations = [...doc.querySelectorAll('.rec')].map((el, i) => ({
         source:
           ITEMS.find((item) =>
             getDetailHtml(item, A).includes(
@@ -38,7 +38,11 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
           el.querySelector('.pri')?.className.match(/p([123])/)?.[1] * 1 || 3,
         i,
       }))
-      .sort((a, b) => a.priority - b.priority || a.i - b.i)
+    }
+
+    return normalizedRecommendations.sort(
+      (a, b) => a.priority - b.priority || a.i - b.i,
+    )
   }, [A])
   return (
     <main className="screen active">
@@ -61,7 +65,7 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
         <div className="rpt">
           <div className="rpt-head">
             <div>
-              <div className="lbl">축제 흥행 사전 검증 리포트</div>
+              <div className="lbl">축제 기획 타당성 분석 리포트</div>
               <h2 className="report-title">{A.p.name}</h2>
               <div className="plan-meta">
                 {A.p.org || A.R.name}
@@ -79,7 +83,7 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
               </div>
             </div>
             <div className="report-score">
-              <div className="lbl">종합 흥행 스코어</div>
+              <div className="lbl">기획 타당성 점수</div>
               <b>{A.composite}</b>
               <div className="lbl">
                 등급 {A.grade} · {A.gradeNote}
@@ -87,13 +91,13 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
             </div>
           </div>
           <ReportGroup
-            title="흥행 스코어 반영 항목"
+            title="기획 타당성 점수 반영 항목"
             tag="3개 항목 동일 가중"
             cards={cards.filter((x) => x.item.scored)}
           />
           <ReportGroup
             title="별도 진단"
-            tag="스코어 미반영"
+            tag="기획 타당성 점수 미반영"
             cards={cards.filter((x) => !x.item.scored)}
           />
           <section className="rpt-sec">
