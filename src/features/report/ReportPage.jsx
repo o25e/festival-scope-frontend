@@ -4,7 +4,81 @@ import { fmt, levelClass } from '../../utils/formatters'
 import { ITEMS, cardData } from '../analysis/analysisData'
 import { getDetailHtml } from '../analysis/DetailPanel'
 
+const REPORT_STATUS_LABELS = {
+  COMPLETED: '분석 완료',
+  FAILED: '분석 실패',
+  RUNNING: '분석 중',
+  ANALYZING: '분석 중',
+  WAITING: '분석 대기',
+}
+
+const displayText = (value) => {
+  if (value === null || value === undefined) return '-'
+  const text = String(value).trim()
+  return text && text !== '-' ? text : '-'
+}
+
+const parseReportDate = (value) => {
+  const text = displayText(value)
+  if (text === '-') return null
+
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const timestamp = Date.UTC(year, month - 1, day)
+  const date = new Date(timestamp)
+  if (
+    !Number.isFinite(timestamp) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  return { label: `${match[1]}-${match[2]}-${match[3]}`, timestamp }
+}
+
+const formatReportDate = (value) => parseReportDate(value)?.label || '-'
+
+const formatReportPeriod = (startValue, endValue) => {
+  const start = parseReportDate(startValue)
+  const end = parseReportDate(endValue)
+  if (!start && !end) return '-'
+
+  const range = `${start?.label || '-'} ~ ${end?.label || '-'}`
+  if (!start || !end || end.timestamp < start.timestamp) return range
+
+  const days = Math.round((end.timestamp - start.timestamp) / 86400000) + 1
+  return `${range} (${days}일)`
+}
+
+const formatReportTarget = (value) => {
+  if (value === null || value === undefined || value === '') return '-'
+  const number = typeof value === 'string'
+    ? Number(value.trim().replaceAll(',', '').replace(/명$/, ''))
+    : Number(value)
+  return Number.isFinite(number) ? fmt(number) : '-'
+}
+
+const formatReportStatus = (value) => {
+  const status = displayText(value)
+  if (status === '-') return '-'
+  return REPORT_STATUS_LABELS[status.toUpperCase()] || status
+}
+
 export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아가기' }) {
+  const displayPlan = A.reportPlan ?? A.p ?? {}
+  const displayFestivalName = A.reportPlan
+    ? displayText(A.server?.festivalName)
+    : displayText(A.p?.name)
+  const displayPeriod = formatReportPeriod(displayPlan.start, displayPlan.end)
+  const displayTarget = formatReportTarget(displayPlan.target)
+  const displayStatus = formatReportStatus(A.server?.analysisStatus)
+  const displayCreatedAt = formatReportDate(A.server?.createdAt)
   const cards = ITEMS.map((item) => ({ item, data: cardData(item, A, { report: true }) }))
   const recommendations = useMemo(() => {
     let normalizedRecommendations
@@ -66,20 +140,15 @@ export function ReportScreen({ A, onBack, onPrint, backLabel = '결과로 돌아
           <div className="rpt-head">
             <div>
               <div className="lbl">축제 기획 타당성 분석 리포트</div>
-              <h2 className="report-title">{A.p.name}</h2>
+              <h2 className="report-title">{displayFestivalName}</h2>
               <div className="plan-meta">
-                {A.p.org || A.R.name}
+                {displayText(displayPlan.org)}
                 <i>|</i>
-                {A.p.venue}
+                {displayText(displayPlan.venue)}
                 <i>|</i>
-                {A.p.start} ~ {A.p.end} ({A.days}일)<i>|</i>목표{' '}
-                {fmt(A.p.target)}명
-                {A.server?.analysisStatus !== null && A.server?.analysisStatus !== undefined && (
-                  <><i>|</i>{A.server.analysisStatus}</>
-                )}
-                {A.server?.createdAt !== null && A.server?.createdAt !== undefined && (
-                  <><i>|</i>{String(A.server.createdAt).slice(0, 10)}</>
-                )}
+                {displayPeriod}<i>|</i>목표 {displayTarget === '-' ? '-' : `${displayTarget}명`}
+                <i>|</i>{displayStatus}
+                <i>|</i>{displayCreatedAt}
               </div>
             </div>
             <div className="report-score">

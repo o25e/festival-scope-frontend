@@ -64,6 +64,92 @@ const EMPTY_PLAN = {
   customProgramNames: [],
 }
 
+const hasReportValue = (value) => {
+  if (value === null || value === undefined) return false
+  const text = String(value).trim()
+  return text !== '' && text !== '-'
+}
+
+const firstReportValue = (...values) => values.find(hasReportValue) ?? null
+
+const reportNumber = (value) => {
+  if (!hasReportValue(value)) return null
+  const normalized = typeof value === 'string'
+    ? value.trim().replaceAll(',', '').replace(/명$/, '')
+    : value
+  const number = Number(normalized)
+  return Number.isFinite(number) ? number : null
+}
+
+const firstReportNumber = (...values) => {
+  for (const value of values) {
+    const number = reportNumber(value)
+    if (number !== null) return number
+  }
+  return null
+}
+
+const reportRegion = (source = {}) => {
+  const directRegion = firstReportValue(source.hostRegion)
+  if (directRegion) return directRegion
+
+  const parts = [source.sido, source.sigungu].filter(hasReportValue)
+  return parts.length ? parts.join(' ') : null
+}
+
+const buildReportDisplayPlan = (summary = {}, document = null, report = {}) => {
+  const documentPlan = document?.plan && typeof document.plan === 'object'
+    ? document.plan
+    : {}
+  const targetSummaryItem = Array.isArray(summary.items)
+    ? summary.items.find((item) => item?.itemType === 'TARGET_VISITOR')
+    : null
+  const targetDetail = report?.details?.TARGET_VISITOR
+  const targetVisitor = targetDetail?.targetVisitor && typeof targetDetail.targetVisitor === 'object'
+    ? targetDetail.targetVisitor
+    : targetDetail || {}
+  const summaryRegion = reportRegion(summary)
+  const documentRegion = reportRegion(document || {})
+  const planRegion = reportRegion(documentPlan)
+
+  return {
+    name: firstReportValue(summary.festivalName, document?.festivalName, documentPlan.name),
+    org: firstReportValue(summaryRegion, documentRegion, planRegion, documentPlan.org),
+    venue: firstReportValue(
+      summary.venueName,
+      document?.venueName,
+      documentPlan.venueName,
+      documentPlan.venue,
+    ),
+    start: firstReportValue(
+      summary.festivalStartDate,
+      summary.startDate,
+      document?.festivalStartDate,
+      document?.startDate,
+      documentPlan.festivalStartDate,
+      documentPlan.startDate,
+      documentPlan.start,
+    ),
+    end: firstReportValue(
+      summary.festivalEndDate,
+      summary.endDate,
+      document?.festivalEndDate,
+      document?.endDate,
+      documentPlan.festivalEndDate,
+      documentPlan.endDate,
+      documentPlan.end,
+    ),
+    target: firstReportNumber(
+      summary.targetVisitorCount,
+      targetSummaryItem?.targetVisitorCount,
+      targetVisitor.targetVisitorCount,
+      document?.targetVisitorCount,
+      documentPlan.targetVisitorCount,
+      documentPlan.target,
+    ),
+  }
+}
+
 const LOGIN_INVALID_CREDENTIALS_MESSAGE =
   '이메일 또는 비밀번호가 올바르지 않습니다.'
 const LOGIN_SERVER_ERROR_MESSAGE =
@@ -193,7 +279,7 @@ export default function App() {
       }
       if (route.name === 'report') {
         const document =
-          activeDocument?.analysisId === route.analysisId
+          String(activeDocument?.analysisId) === route.analysisId
             ? activeDocument
             : documents.find((item) => String(item.analysisId) === route.analysisId)
         if (document && stage !== 'report') {
@@ -243,7 +329,12 @@ export default function App() {
       }))
       .then(({ response, tourismLinkageDetail }) => {
         if (!active) return
-        const reportName = response?.summary?.festivalName
+        const reportSummary = response?.summary || {}
+        const reportName = reportSummary.festivalName
+        const reportDocument =
+          String(activeDocument?.analysisId) === route.analysisId
+            ? activeDocument
+            : documents.find((item) => String(item.analysisId) === route.analysisId)
         const currentPlan = planRef.current
         const reportPlan = normalizeFestivalPlan({
           ...currentPlan,
@@ -262,10 +353,13 @@ export default function App() {
             TOURISM_LINKAGE: tourismLinkageDetail,
           },
         }
-        const nextAnalysis = mergeAnalysisReport(
-          analyze(basePlan),
-          reportWithTourismLinkageDetail,
-        )
+        const nextAnalysis = {
+          ...mergeAnalysisReport(
+            analyze(basePlan),
+            reportWithTourismLinkageDetail,
+          ),
+          reportPlan: buildReportDisplayPlan(reportSummary, reportDocument, response),
+        }
         setPlan(reportPlan)
         setAnalysis(nextAnalysis)
         setReportState({ status: 'success', analysis: nextAnalysis, error: null })
@@ -283,7 +377,7 @@ export default function App() {
       active = false
       controller.abort()
     }
-  }, [isAuthenticated, isSample, route.analysisId, route.name])
+  }, [activeDocument, documents, isAuthenticated, isSample, route.analysisId, route.name])
 
   useEffect(() => {
     const f = (e) => {
