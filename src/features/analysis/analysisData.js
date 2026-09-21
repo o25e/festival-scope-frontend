@@ -42,7 +42,7 @@ export const ITEMS = [
     no: 6,
     scored: false,
     name: '관광 연계 잠재력',
-    scope: '행사장 반경 5km · 15km 관광지 · 음식점 상권 · 숙박 POI',
+    scope: '행사장 반경 3km · 15km 관광지 · 음식점 상권 · 숙박 POI',
   },
 ]
 
