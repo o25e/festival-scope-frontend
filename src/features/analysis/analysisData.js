@@ -86,6 +86,28 @@ const tourismLinkageSummary = (A, content, reportItem, reportDetail) => {
 const tourismLinkageSummaryItem = (A) =>
   A.report?.items?.TOURISM_LINKAGE || A.server?.items?.TOURISM_LINKAGE?.summary || null
 
+const firstNonBlankText = (...values) => {
+  const value = values.find((candidate) => typeof candidate === 'string' && candidate.trim())
+  return value ? value.trim() : null
+}
+
+export const weatherStatusData = (A) => {
+  const detail = A.report?.details?.WEATHER_RISK || A.server?.items?.WEATHER_RISK?.detail
+  const summary = A.report?.items?.WEATHER_RISK || A.server?.items?.WEATHER_RISK?.summary
+  const statusLevel = firstNonBlankText(detail?.statusLevel, summary?.statusLevel)?.toUpperCase()
+  const status = firstNonBlankText(detail?.status, summary?.status) || '-'
+  const tone =
+    statusLevel === 'SAFE' || statusLevel === 'NORMAL'
+      ? 'g'
+      : statusLevel === 'WARNING'
+        ? 'w'
+        : statusLevel === 'DANGER' || statusLevel === 'CRITICAL'
+          ? 'r'
+          : 'n'
+
+  return { status, tone }
+}
+
 const tourismLinkageSummaryCardData = (item, A, reportItem) => {
   const primaryMetric = reportItem.primaryMetric || {}
   const metrics = Array.isArray(reportItem.metrics) ? reportItem.metrics : []
@@ -119,14 +141,16 @@ const reportItemData = (item, A) => {
   const detail = A.report?.details?.[itemType]
   const chart = reportItem.chart || null
   const chartValues = chart?.values ?? chart?.data ?? chart?.series
-  const status = reportItem.status ?? reportItem.statusLevel ?? '-'
+  const weatherStatus = item.key === 'weather' ? weatherStatusData(A) : null
+  const status = weatherStatus?.status ?? reportItem.status ?? reportItem.statusLevel ?? '-'
   const statusLevel = String(reportItem.statusLevel ?? '').toUpperCase()
-  const tone =
+  const tone = weatherStatus?.tone ?? (
     statusLevel === 'POSITIVE' || statusLevel === 'GOOD' || statusLevel === 'LOW'
       ? 'g'
       : statusLevel === 'NEGATIVE' || statusLevel === 'DANGER' || statusLevel === 'HIGH'
         ? 'r'
         : 'w'
+  )
   const primaryValue = primaryMetric.value ?? reportItem.score ?? '-'
   return {
     title: reportItem.title ?? item.name,
@@ -318,9 +342,10 @@ export function cardData(item, A, options = {}) {
   if (item.key === 'weather') {
     const weatherMonthIndex = Number.isInteger(Number(A.m)) && Number(A.m) >= 0 && Number(A.m) <= 11 ? Number(A.m) : null
     const weatherMonthLabel = weatherMonthIndex === null ? '개최 월' : `${weatherMonthIndex + 1}월`
+    const weatherStatus = weatherStatusData(A)
     return {
-      pill: `취약도 ${v.v5 ?? '-'}`,
-      tone: v.v5 === '높음' ? 'r' : v.v5 === '보통' ? 'w' : 'g',
+      pill: weatherStatus.status,
+      tone: weatherStatus.tone,
       metric: v.rainP === null || v.rainP === undefined ? '-' : `${v.rainP}%`,
       unit: `${weatherMonthLabel} 동일 시기 강수 발생률`,
       sub: [['기상 취약 프로그램', `${A.progs.filter((x) => x.out || x.wind || x.fog).length}개`]],

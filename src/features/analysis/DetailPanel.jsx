@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Button } from '../../components/ui'
 import { MONTHS, YEARS } from '../../data/prototype'
 import { dadd, dparse, dfmt, fmt, levelClass, round1 } from '../../utils/formatters'
-import { ITEMS, cardData } from './analysisData'
+import { ITEMS, cardData, weatherStatusData } from './analysisData'
 
 const CHART = {
   blue: 'var(--color-data-blue)',
@@ -742,6 +742,7 @@ export function getDetailHtml(item, A) {
     const occurrenceYears =
       W.occurrenceYears !== undefined ? W.occurrenceYears : W.rainYears[m]
     const actualYears = W.actualYears !== undefined ? W.actualYears : 10
+    const weatherStatus = weatherStatusData(A)
     const weatherInterpretation = content.detail
       ? `<div class="readbox read"><p>${content.detail}</p></div>`
       : `<div class="readbox read"><p>${weatherMonthLabel} 동일 시기에 강수가 관측된 해는 최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}입니다(${displayWeatherValue(v.rainP, '%')}). 선택한 핵심 프로그램과 기상 이력을 결합한 행사 기상 취약도는 <strong>${displayWeatherValue(v.wRisk)}점(${v.v5 || '-'})</strong>입니다.</p><p>${
@@ -758,7 +759,7 @@ export function getDetailHtml(item, A) {
       sec(
         1,
         '핵심 지표',
-        `<div class="metricrow c2">${mt('행사 기상 취약도', `${displayWeatherValue(v.wRisk)}<small>/100</small>`, '선택 프로그램과 과거 동일 시기 강수 통계 기반', true)}${mt(`${weatherMonthLabel} 강수 발생률`, `${displayWeatherValue(v.rainP)}<small>%</small>`, `최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}`)}</div>`,
+        `<div class="metricrow c2">${mt('행사 기상 취약도', weatherStatus.status, '상세 기상 분석 결과 기준', true)}${mt(`${weatherMonthLabel} 강수 발생률`, `${displayWeatherValue(v.rainP)}<small>%</small>`, `최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}`)}</div>`,
       ) +
       sec(
         2,
