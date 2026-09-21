@@ -179,6 +179,7 @@
   font-size: 13px;
   line-height: 1.72;
   color: var(--ink2);
+  white-space: pre-line;
 }
 .p-body .read strong {
   color: var(--ink);
@@ -452,6 +453,16 @@
 }
 .p-body .rec .rc b {
   letter-spacing: -0.01em;
+}
+.p-body .rec .rc p,
+.p-body .metric .md,
+.p-body .weekly-demand-basis,
+.p-body .access-summary-copy p,
+.p-body .parking-basis,
+.rpt-item p,
+.rpt-row p,
+.card-read {
+  white-space: pre-line;
 }
 .p-body .rec .rc em {
   font-style: normal;
