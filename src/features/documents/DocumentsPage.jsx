@@ -9,7 +9,7 @@ const PAGE_SIZE = 10
 const isAbortError = (error) =>
   error?.name === 'AbortError' || error?.cause?.name === 'AbortError'
 
-export function DocumentsPage({ onParsedPlan, onOpenReport, onDocumentsLoaded }) {
+export function DocumentsPage({ onParsedPlan, onOpenAnalysis, onDocumentsLoaded }) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [retryToken, setRetryToken] = useState(0)
@@ -177,7 +177,7 @@ export function DocumentsPage({ onParsedPlan, onOpenReport, onDocumentsLoaded })
           <button
             type="button"
             disabled={document.status !== DOCUMENT_STATUS.COMPLETED}
-            onClick={() => onOpenReport(document)}
+            onClick={() => onOpenAnalysis(document)}
           >
             {document.festivalName}
           </button>

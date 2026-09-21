@@ -3,6 +3,34 @@ import { getLevel } from '../../data/prototype'
 import { fmt, levelClass } from '../../utils/formatters'
 import { ITEMS, cardData } from './analysisData'
 
+export function ResultLoadingScreen() {
+  return (
+    <main className="screen active">
+      <div className="wrap">
+        <div className="documents-empty documents-loading" role="status" aria-live="polite">
+          <strong>분석 결과를 불러오는 중입니다.</strong>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+export function ResultErrorScreen({ error, onBack }) {
+  return (
+    <main className="screen active">
+      <div className="wrap">
+        <div className="documents-empty documents-error" role="alert">
+          <strong>분석 결과를 불러오지 못했습니다.</strong>
+          <span>{error || '잠시 후 다시 시도해 주세요.'}</span>
+          <button className="btn btn-sm" type="button" onClick={onBack}>
+            분석 문서 목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+
 const VISITOR_MEDIAN_BAR_COLOR = '#CBDCE8'
 const VISITOR_TARGET_BAR_COLOR = '#12557E'
 

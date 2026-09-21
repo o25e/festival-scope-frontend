@@ -23,7 +23,11 @@ import { FormScreen } from './features/input/InputPage'
 import { ReviewScreen } from './features/review/ReviewPage'
 import { LoadingScreen } from './features/loading/LoadingPage'
 import { ITEMS } from './features/analysis/analysisData'
-import { ResultScreen } from './features/analysis/ResultsPage'
+import {
+  ResultErrorScreen,
+  ResultLoadingScreen,
+  ResultScreen,
+} from './features/analysis/ResultsPage'
 import { Panel } from './features/analysis/DetailPanel'
 import {
   ReportErrorScreen,
@@ -150,6 +154,111 @@ const buildReportDisplayPlan = (summary = {}, document = null, report = {}) => {
   }
 }
 
+const ANALYSIS_ITEM_TYPES = [
+  'TARGET_VISITOR',
+  'TREND_FIT',
+  'DEMAND_FIT',
+  'CONFLICT_RISK',
+  'WEATHER_RISK',
+  'TOURISM_LINKAGE',
+]
+
+const ANALYSIS_DETAIL_GETTERS = {
+  TARGET_VISITOR: getTargetVisitorAnalysis,
+  TREND_FIT: getTrendFitAnalysis,
+  DEMAND_FIT: getDemandFitAnalysis,
+  CONFLICT_RISK: getConflictRiskAnalysis,
+  WEATHER_RISK: getWeatherRiskAnalysis,
+  TOURISM_LINKAGE: getTourismLinkageAnalysis,
+}
+
+const loadServerAnalysisData = async (analysisId, options = {}) => {
+  const response = await getAnalysis(analysisId, options)
+  const summary = Array.isArray(response?.items)
+    ? response
+    : response?.summary && typeof response.summary === 'object'
+      ? response.summary
+      : response
+  if (!summary || typeof summary !== 'object' || !Array.isArray(summary.items)) {
+    throw new ApiError('분석 결과 요약 데이터 형식이 올바르지 않습니다.', { data: response })
+  }
+  const supportedItemTypes = ANALYSIS_ITEM_TYPES.filter((itemType) =>
+    summary?.items?.some((item) => item?.itemType === itemType),
+  )
+  const detailEntries = await Promise.all(
+    supportedItemTypes.map(async (itemType) => [
+      itemType,
+      await ANALYSIS_DETAIL_GETTERS[itemType](analysisId, options),
+    ]),
+  )
+
+  return { summary, details: Object.fromEntries(detailEntries) }
+}
+
+const buildAnalysisPlan = (summary = {}, document = null) => {
+  const documentPlan = document?.plan && typeof document.plan === 'object'
+    ? document.plan
+    : {}
+  const targetSummaryItem = Array.isArray(summary.items)
+    ? summary.items.find((item) => item?.itemType === 'TARGET_VISITOR')
+    : null
+  const targetDetail = targetSummaryItem?.targetVisitor || {}
+  const summaryRegion = reportRegion(summary)
+  const documentRegion = reportRegion(document || {})
+
+  return normalizeFestivalPlan({
+    ...EMPTY_PLAN,
+    ...documentPlan,
+    planName: firstReportValue(
+      summary.festivalName,
+      document?.festivalName,
+      documentPlan.planName,
+      documentPlan.name,
+    ) || EMPTY_PLAN.planName,
+    name: firstReportValue(
+      summary.festivalName,
+      document?.festivalName,
+      documentPlan.name,
+      documentPlan.planName,
+    ) || EMPTY_PLAN.name,
+    org: firstReportValue(summaryRegion, documentRegion, documentPlan.org) || EMPTY_PLAN.org,
+    sido: firstReportValue(summary.sido, documentPlan.sido) || EMPTY_PLAN.sido,
+    sigungu: firstReportValue(summary.sigungu, documentPlan.sigungu) || EMPTY_PLAN.sigungu,
+    venue: firstReportValue(
+      summary.venueName,
+      document?.venueName,
+      documentPlan.venue,
+      documentPlan.venueName,
+    ) || EMPTY_PLAN.venue,
+    start: firstReportValue(
+      summary.festivalStartDate,
+      summary.startDate,
+      document?.festivalStartDate,
+      document?.startDate,
+      documentPlan.start,
+      documentPlan.festivalStartDate,
+      documentPlan.startDate,
+    ) || EMPTY_PLAN.start,
+    end: firstReportValue(
+      summary.festivalEndDate,
+      summary.endDate,
+      document?.festivalEndDate,
+      document?.endDate,
+      documentPlan.end,
+      documentPlan.festivalEndDate,
+      documentPlan.endDate,
+    ) || EMPTY_PLAN.end,
+    target: firstReportNumber(
+      summary.targetVisitorCount,
+      targetSummaryItem?.targetVisitorCount,
+      targetDetail.targetVisitorCount,
+      document?.targetVisitorCount,
+      documentPlan.targetVisitorCount,
+      documentPlan.target,
+    ) ?? EMPTY_PLAN.target,
+  })
+}
+
 const LOGIN_INVALID_CREDENTIALS_MESSAGE =
   '이메일 또는 비밀번호가 올바르지 않습니다.'
 const LOGIN_SERVER_ERROR_MESSAGE =
@@ -214,7 +323,17 @@ const getLoginErrorMessage = (error) => {
 export default function App() {
   const { isAuthenticated, isPending, login, signup, logout } = useAuth()
   const route = useRoute()
-  const initialStage = route.name === 'documents' ? 'documents' : route.name === 'input' ? 'input' : route.name === 'report' ? 'report' : isAuthenticated ? 'documents' : 'landing'
+  const initialStage = route.name === 'documents'
+    ? 'documents'
+    : route.name === 'input'
+      ? 'input'
+      : route.name === 'analysis'
+        ? 'result'
+        : route.name === 'report'
+          ? 'report'
+          : isAuthenticated
+            ? 'documents'
+            : 'landing'
   const [stage, setStage] = useState(initialStage),
     [loginOpen, setLoginOpen] = useState(false),
     [loginError, setLoginError] = useState(''),
@@ -227,6 +346,10 @@ export default function App() {
     [reportState, setReportState] = useState({
       status: 'idle',
       analysis: null,
+      error: null,
+    }),
+    [resultState, setResultState] = useState({
+      status: 'idle',
       error: null,
     }),
     [openKey, setOpenKey] = useState(null),
@@ -252,7 +375,7 @@ export default function App() {
   const A = useMemo(
       () =>
         analysis ||
-        (stage === 'result' || stage === 'report' ? analyze(plan) : null),
+        (stage === 'report' ? analyze(plan) : null),
       [analysis, plan, stage],
     ),
     index = ITEMS.findIndex((x) => x.key === openKey),
@@ -275,6 +398,10 @@ export default function App() {
       }
       if (route.name === 'input') {
         if (stage === 'landing' || stage === 'documents') setStage('input')
+        return
+      }
+      if (route.name === 'analysis') {
+        if (stage !== 'result') setStage('result')
         return
       }
       if (route.name === 'report') {
@@ -380,6 +507,52 @@ export default function App() {
   }, [activeDocument, documents, isAuthenticated, isSample, route.analysisId, route.name])
 
   useEffect(() => {
+    if (!isAuthenticated || isSample || route.name !== 'analysis' || !route.analysisId) {
+      return undefined
+    }
+
+    const currentAnalysisId = analysis?.server?.analysisId
+    if (String(currentAnalysisId) === route.analysisId) {
+      setResultState({ status: 'success', error: null })
+      return undefined
+    }
+
+    const controller = new AbortController()
+    let active = true
+    const document =
+      String(activeDocument?.analysisId) === route.analysisId
+        ? activeDocument
+        : documents.find((item) => String(item.analysisId) === route.analysisId)
+
+    setResultState({ status: 'loading', error: null })
+    setOpenKey(null)
+    setAnalysis(null)
+
+    Promise.resolve()
+      .then(() => loadServerAnalysisData(route.analysisId, { signal: controller.signal }))
+      .then(({ summary, details }) => {
+        if (!active) return
+        const resultPlan = buildAnalysisPlan(summary, document)
+        const nextAnalysis = mergeServerAnalysis(analyze(resultPlan), summary, details)
+        setPlan(resultPlan)
+        setAnalysis(nextAnalysis)
+        setResultState({ status: 'success', error: null })
+      })
+      .catch((error) => {
+        if (!active || error?.name === 'AbortError' || error?.cause?.name === 'AbortError') return
+        setResultState({
+          status: error?.status === 404 ? 'not-found' : 'error',
+          error: error?.message || '분석 결과를 불러오지 못했습니다.',
+        })
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [activeDocument, analysis, documents, isAuthenticated, isSample, route.analysisId, route.name])
+
+  useEffect(() => {
     const f = (e) => {
       if (e.key === 'Escape') setOpenKey(null)
       if (index >= 0 && e.key === 'ArrowLeft' && index > 0)
@@ -458,7 +631,9 @@ export default function App() {
         analysis,
       }
       setActiveDocument(document)
+      setResultState({ status: 'success', error: null })
       setStage('result')
+      navigate(`/analyses/${encodeURIComponent(id)}`)
     }
 
   const handleParsedPlan = ({ response }) => {
@@ -539,30 +714,9 @@ export default function App() {
       }
 
       phase = 'analysis-summary'
-      const summary = await getAnalysis(analysisId, {
+      const { summary, details } = await loadServerAnalysisData(analysisId, {
         signal: analysisController.signal,
       })
-      const supportedItemTypes = ['TARGET_VISITOR', 'TREND_FIT', 'DEMAND_FIT', 'CONFLICT_RISK', 'WEATHER_RISK', 'TOURISM_LINKAGE'].filter((itemType) =>
-        summary?.items?.some((item) => item?.itemType === itemType),
-      )
-      phase = 'analysis-detail'
-      const detailGetters = {
-        TARGET_VISITOR: getTargetVisitorAnalysis,
-        TREND_FIT: getTrendFitAnalysis,
-        DEMAND_FIT: getDemandFitAnalysis,
-        CONFLICT_RISK: getConflictRiskAnalysis,
-        WEATHER_RISK: getWeatherRiskAnalysis,
-        TOURISM_LINKAGE: getTourismLinkageAnalysis,
-      }
-      const detailEntries = await Promise.all(
-        supportedItemTypes.map(async (itemType) => [
-          itemType,
-          await detailGetters[itemType](analysisId, {
-            signal: analysisController.signal,
-          }),
-        ]),
-      )
-      const details = Object.fromEntries(detailEntries)
       const serverAnalysis = mergeServerAnalysis(analyze(plan), summary, details)
       setAnalysis(serverAnalysis)
       setIsAnalysisComplete(true)
@@ -686,15 +840,16 @@ export default function App() {
         <DocumentsPage
           onDocumentsLoaded={handleDocumentsLoaded}
           onParsedPlan={handleParsedPlan}
-          onOpenReport={(document) => {
+          onOpenAnalysis={(document) => {
             setActiveDocument(document)
-            setReportState({ status: 'loading', analysis: null, error: null })
-            const reportPlan = normalizeFestivalPlan(document.plan || EMPTY_PLAN)
-            setPlan(reportPlan)
+            setResultState({ status: 'loading', error: null })
+            setOpenKey(null)
+            setAnalysis(null)
+            const analysisPlan = normalizeFestivalPlan(document.plan || EMPTY_PLAN)
+            setPlan(analysisPlan)
             setAutoFilledFields({})
-            setAnalysis(document.analysis || (document.plan ? analyze(reportPlan) : null))
-            setStage('report')
-            navigate(`/reports/${encodeURIComponent(document.analysisId)}`)
+            setStage('result')
+            navigate(`/analyses/${encodeURIComponent(document.analysisId)}`)
           }}
         />
       )}
@@ -740,13 +895,20 @@ export default function App() {
           onReport={() => {
             setReportState({ status: 'loading', analysis: null, error: null })
             setStage('report')
-            if (registeredAnalysisId) {
-              navigate(`/reports/${encodeURIComponent(registeredAnalysisId)}`)
+            const analysisId = registeredAnalysisId || route.analysisId || analysis?.server?.analysisId
+            if (analysisId) {
+              navigate(`/reports/${encodeURIComponent(analysisId)}`)
             }
           }}
           onOpen={setOpenKey}
           openKey={openKey}
         />
+      )}
+      {stage === 'result' && !A && resultState.status === 'loading' && (
+        <ResultLoadingScreen />
+      )}
+      {stage === 'result' && !A && resultState.status !== 'loading' && resultState.status !== 'idle' && (
+        <ResultErrorScreen error={resultState.error} onBack={openDocuments} />
       )}
       {stage === 'report' && isSample && A && (
         <ReportScreen
