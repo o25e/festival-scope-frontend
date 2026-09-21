@@ -3,6 +3,22 @@ import { MONTHS, YEARS } from '../../data/prototype'
 import { dadd, dparse, dfmt, fmt, levelClass, round1 } from '../../utils/formatters'
 import { ITEMS, cardData } from './analysisData'
 
+const CHART = {
+  blue: 'var(--color-data-blue)',
+  violet: 'var(--color-data-violet)',
+  cyan: 'var(--color-data-cyan)',
+  primary: 'var(--color-primary)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
+  text: 'var(--color-text)',
+  secondary: 'var(--color-text-secondary)',
+  muted: 'var(--color-text-muted)',
+  border: 'var(--color-border)',
+  track: 'var(--color-track)',
+  surface: 'var(--color-surface)',
+}
+
 const mt = (label, value, detail, highlight = false) =>
   `<div class="metric ${highlight ? 'hl' : ''}"><div class="lbl">${label}</div><div class="mv">${value}</div>${detail ? `<div class="md">${detail}</div>` : ''}</div>`
 const sec = (n, title, html) =>
@@ -49,15 +65,15 @@ function weeklyBars(rows, unit = '만 명') {
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="직전년도 개최월 주차별 방문객 수 막대그래프">`
   ticks.forEach((tick) => {
     const y = H - padB - (tick / maxV) * plotH
-    s += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#EAF0F4"/><text x="${padL - 7}" y="${y + 3.5}" text-anchor="end" font-size="10" fill="#93A2AF">${tick}</text>`
+    s += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${CHART.border}"/><text x="${padL - 7}" y="${y + 3.5}" text-anchor="end" font-size="10" fill="${CHART.muted}">${tick}</text>`
   })
   rows.forEach((row, i) => {
     const barW = groupW * 0.56,
       x = padL + i * groupW + (groupW - barW) / 2,
       barH = (row.value / maxV) * plotH,
       y = H - padB - barH,
-      fill = row.highlight ? '#5577B5' : '#91B4E1'
-    s += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${fill}"/><text x="${x + barW / 2}" y="${y - 8}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#132434">${row.value}${unit}</text><text x="${x + barW / 2}" y="${H - padB + 18}" text-anchor="middle" font-size="10.5" fill="#3C4E5F" font-weight="600">${row.label}</text><text x="${x + barW / 2}" y="${H - padB + 34}" text-anchor="middle" font-size="9.5" fill="#6C7D8C">(${row.range})</text>`
+      fill = row.highlight ? CHART.cyan : CHART.track
+    s += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${fill}"/><text x="${x + barW / 2}" y="${y - 8}" text-anchor="middle" font-size="11.5" font-weight="700" fill="${CHART.text}">${row.value}${unit}</text><text x="${x + barW / 2}" y="${H - padB + 18}" text-anchor="middle" font-size="10.5" fill="${CHART.secondary}" font-weight="600">${row.label}</text><text x="${x + barW / 2}" y="${H - padB + 34}" text-anchor="middle" font-size="9.5" fill="${CHART.muted}">(${row.range})</text>`
   })
   return `${s}</svg>`
 }
@@ -77,7 +93,7 @@ function hBars(rows, unit = '명') {
   rows.forEach((r, i) => {
     const y = i * rowH + 6,
       bw = (r.v / maxV) * (W - padL - padR)
-    s += `<text x="${padL - 9}" y="${y + 11}" text-anchor="end" font-size="11" fill="${r.hl ? '#132434' : '#6C7D8C'}" font-weight="${r.hl ? 600 : 400}">${r.n}</text><rect x="${padL}" y="${y + 1}" width="${Math.max(bw, 2)}" height="14" rx="2" fill="${r.hl ? '#12557E' : r.c || '#B9D0E0'}"/><text x="${padL + bw + 7}" y="${y + 12}" font-size="11" fill="${r.hl ? '#12557E' : '#3C4E5F'}" font-weight="${r.hl ? 700 : 500}">${fmt(r.v)}${unit}</text>${r.sub ? `<text x="${padL - 9}" y="${y + 22}" text-anchor="end" font-size="9.5" fill="#93A2AF">${r.sub}</text>` : ''}`
+    s += `<text x="${padL - 9}" y="${y + 11}" text-anchor="end" font-size="11" fill="${r.hl ? CHART.text : CHART.muted}" font-weight="${r.hl ? 600 : 400}">${r.n}</text><rect x="${padL}" y="${y + 1}" width="${Math.max(bw, 2)}" height="14" rx="2" fill="${r.hl ? CHART.primary : r.c || CHART.track}"/><text x="${padL + bw + 7}" y="${y + 12}" font-size="11" fill="${r.hl ? CHART.primary : CHART.secondary}" font-weight="${r.hl ? 700 : 500}">${fmt(r.v)}${unit}</text>${r.sub ? `<text x="${padL - 9}" y="${y + 22}" text-anchor="end" font-size="9.5" fill="${CHART.muted}">${r.sub}</text>` : ''}`
   })
   return `${s}</svg>`
 }
@@ -100,7 +116,7 @@ function lineChart(labels, series, opt = {}) {
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px" role="img">`
   ;[0, 0.5, 1].forEach((f) => {
     const yy = padT + f * (H - padT - padB)
-    s += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#EAF0F4"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end" font-size="9.5" fill="#93A2AF">${fmt(mn + (1 - f) * (mx - mn))}</text>`
+    s += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="${CHART.border}"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end" font-size="9.5" fill="${CHART.muted}">${fmt(mn + (1 - f) * (mx - mn))}</text>`
   })
   series.forEach((se) => {
     const valid = se.v
@@ -125,14 +141,14 @@ function lineChart(labels, series, opt = {}) {
         s += `<polyline points="${points.join(' ')}" fill="none" stroke="${se.c}" stroke-width="${se.w || 2}" stroke-dasharray="${se.dash || ''}" stroke-linejoin="round"/>`
     })
     valid.forEach((point) => {
-      s += `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${se.dash ? 0 : 3}" fill="#fff" stroke="${se.c}" stroke-width="1.6"/>`
+      s += `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${se.dash ? 0 : 3}" fill="${CHART.surface}" stroke="${se.c}" stroke-width="1.6"/>`
     })
     const last = valid[valid.length - 1]
     if (se.last && last)
       s += `<text x="${x(last.index)}" y="${y(last.value) - 9}" text-anchor="end" font-size="10.5" font-weight="700" fill="${se.c}">${se.last}</text>`
   })
   labels.forEach((l, i) => {
-    s += `<text x="${x(i)}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="#6C7D8C">${l}</text>`
+    s += `<text x="${x(i)}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="${CHART.muted}">${l}</text>`
   })
   return `${s}</svg>`
 }
@@ -147,14 +163,14 @@ function vBars(labels, vals, hl, opt = {}) {
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px" role="img">`
   if (opt.ref) {
     const yy = padT + (1 - opt.ref / mx) * (H - padT - padB)
-    s += `<line x1="${padL}" y1="${yy}" x2="${W - padL}" y2="${yy}" stroke="#A9BECD" stroke-dasharray="3 3"/><text x="${W - padL}" y="${yy - 4}" text-anchor="end" font-size="9.5" fill="#6C7D8C">${opt.refLabel || ''}</text>`
+    s += `<line x1="${padL}" y1="${yy}" x2="${W - padL}" y2="${yy}" stroke="${CHART.track}" stroke-dasharray="3 3"/><text x="${W - padL}" y="${yy - 4}" text-anchor="end" font-size="9.5" fill="${CHART.muted}">${opt.refLabel || ''}</text>`
   }
   vals.forEach((v, i) => {
     const h = (v / mx) * (H - padT - padB),
       xx = padL + i * bw + bw * 0.16,
       ww = bw * 0.68,
       on = Array.isArray(hl) ? hl.includes(i) : i === hl
-    s += `<rect x="${xx}" y="${H - padB - h}" width="${ww}" height="${h}" rx="2" fill="${on ? '#12557E' : '#CBDCE8'}"/>${on ? `<text x="${xx + ww / 2}" y="${H - padB - h - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="#12557E">${v}</text>` : ''}<text x="${xx + ww / 2}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="${on ? '#132434' : '#93A2AF'}" font-weight="${on ? 600 : 400}">${labels[i]}</text>`
+    s += `<rect x="${xx}" y="${H - padB - h}" width="${ww}" height="${h}" rx="2" fill="${on ? opt.color || CHART.primary : CHART.track}"/>${on ? `<text x="${xx + ww / 2}" y="${H - padB - h - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="${opt.color || CHART.primary}">${v}</text>` : ''}<text x="${xx + ww / 2}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="${on ? CHART.text : CHART.muted}" font-weight="${on ? 600 : 400}">${labels[i]}</text>`
   })
   return `${s}</svg>`
 }
@@ -170,22 +186,22 @@ function gantt(rows, ps, pe, name) {
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px" role="img">`
   for (let i = 0; i <= 4; i++) {
     const d = dadd(mn, Math.round((span * i) / 4))
-    s += `<line x1="${X(d)}" y1="16" x2="${X(d)}" y2="${H - 16}" stroke="#EAF0F4"/><text x="${X(d)}" y="11" text-anchor="middle" font-size="9.5" fill="#93A2AF">${dfmt(d)}</text>`
+    s += `<line x1="${X(d)}" y1="16" x2="${X(d)}" y2="${H - 16}" stroke="${CHART.border}"/><text x="${X(d)}" y="11" text-anchor="middle" font-size="9.5" fill="${CHART.muted}">${dfmt(d)}</text>`
   }
   const bar = (y, a, b, fill, text, tc, bold) => {
     const x1 = X(a),
       x2 = Math.max(X(b), x1 + 4)
     return `<rect x="${x1}" y="${y}" width="${x2 - x1}" height="13" rx="2" fill="${fill}"/><text x="105" y="${y + 10}" text-anchor="end" font-size="10" fill="${tc}" font-weight="${bold ? 650 : 400}">${text.length > 13 ? `${text.slice(0, 12)}…` : text}</text>`
   }
-  s += bar(22, ps, pe, '#12557E', name, '#132434', true)
+  s += bar(22, ps, pe, CHART.primary, name, CHART.text, true)
   rows.forEach((r, i) => {
     s += bar(
       22 + (i + 1) * rowH - 4,
       r.b1,
       r.b2,
-      r.lv === 'direct' ? '#C2634C' : r.lv === 'near' ? '#D8A33F' : '#B9C7D2',
+      r.lv === 'direct' ? CHART.danger : r.lv === 'near' ? CHART.warning : CHART.track,
       r.n,
-      '#3C4E5F',
+      CHART.secondary,
       false,
     )
   })
@@ -202,16 +218,16 @@ function groupBars(groups, colors) {
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px" role="img">`
   ;[0, 0.5, 1].forEach((f) => {
     const yy = padT + f * (H - padT - padB)
-    s += `<line x1="${padL}" y1="${yy}" x2="${W - 10}" y2="${yy}" stroke="#EAF0F4"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end" font-size="9.5" fill="#93A2AF">${fmt((1 - f) * mx)}</text>`
+    s += `<line x1="${padL}" y1="${yy}" x2="${W - 10}" y2="${yy}" stroke="${CHART.border}"/><text x="${padL - 6}" y="${yy + 3.5}" text-anchor="end" font-size="9.5" fill="${CHART.muted}">${fmt((1 - f) * mx)}</text>`
   })
   groups.forEach((g, gi) => {
     const bw = (gw * 0.74) / g.v.length
     g.v.forEach((v, i) => {
       const h = (v / mx) * (H - padT - padB),
         x = padL + gi * gw + gw * 0.13 + i * bw
-      s += `<rect x="${x}" y="${H - padB - h}" width="${bw * 0.82}" height="${h}" rx="2" fill="${colors[i]}"/><text x="${x + bw * 0.41}" y="${H - padB - h - 4}" text-anchor="middle" font-size="9.5" fill="#3C4E5F">${fmt(v)}</text>`
+      s += `<rect x="${x}" y="${H - padB - h}" width="${bw * 0.82}" height="${h}" rx="2" fill="${colors[i]}"/><text x="${x + bw * 0.41}" y="${H - padB - h - 4}" text-anchor="middle" font-size="9.5" fill="${CHART.secondary}">${fmt(v)}</text>`
     })
-    s += `<text x="${padL + gi * gw + gw * 0.5}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="#132434" font-weight="600">${g.n}</text>`
+    s += `<text x="${padL + gi * gw + gw * 0.5}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="${CHART.text}" font-weight="600">${g.n}</text>`
   })
   return `${s}</svg>`
 }
@@ -259,13 +275,13 @@ export function getDetailHtml(item, A) {
           [
             {
               v: historySeries,
-              c: '#12557E',
+              c: CHART.blue,
               area: true,
               last: displayVisitorNumber(lastHistoryValue),
             },
             {
               v: historyYears.map(() => target),
-              c: '#C2634C',
+              c: CHART.danger,
               dash: '4 3',
               w: 1.6,
               last: `목표 ${displayVisitorNumber(target)}`,
@@ -335,16 +351,16 @@ export function getDetailHtml(item, A) {
         `<div class="vizbox">${hBars(rows)}<p class="vizcap">유사 축제는 주제(${T.name})·개최 지역 특성·규모·개최 시기를 종합해 선정했습니다. 동일 지역 개최 이력 1건을 포함합니다.</p></div><div class="vizbox" style="margin-top:10px">${lineChart(
           YEARS,
           [
-            { v: v.yearAvg, c: '#12557E', area: true, last: fmt(v.yearAvg[4]) },
+            { v: v.yearAvg, c: CHART.blue, area: true, last: fmt(v.yearAvg[4]) },
             {
               v: YEARS.map(() => p.target),
-              c: '#C2634C',
+              c: CHART.danger,
               dash: '4 3',
               w: 1.6,
               last: `목표 ${fmt(p.target)}`,
             },
           ],
-        )}<p class="vizcap">유사 축제 5건의 연도별 평균 방문객(진한 선)과 이번 목표(점선). 최근 4년 연평균 증가율 ${(v.simCagr * 100).toFixed(1)}%.</p><div class="legend"><span><i style="background:#12557E"></i>유사 축제 평균</span><span><i style="background:#C2634C"></i>이번 기획안 목표</span></div></div><table class="dt" style="margin-top:12px"><tr><th>유사 축제</th><th>지역</th><th class="n">2026년 실적</th><th class="n">4년 증감</th></tr>${v.sims.map((s) => `<tr><td>${s.n}</td><td style="color:var(--muted)">${s.reg}</td><td class="n">${fmt(s.series[4])}</td><td class="n" style="color:${s.series[4] >= s.series[0] ? 'var(--good)' : 'var(--risk)'}">${s.series[4] >= s.series[0] ? '+' : ''}${Math.round((s.series[4] / s.series[0] - 1) * 100)}%</td></tr>`).join('')}</table>`,
+        )}<p class="vizcap">유사 축제 5건의 연도별 평균 방문객(진한 선)과 이번 목표(점선). 최근 4년 연평균 증가율 ${(v.simCagr * 100).toFixed(1)}%.</p><div class="legend"><span><i style="background:var(--color-primary)"></i>유사 축제 평균</span><span><i style="background:var(--color-danger)"></i>이번 기획안 목표</span></div></div><table class="dt" style="margin-top:12px"><tr><th>유사 축제</th><th>지역</th><th class="n">2026년 실적</th><th class="n">4년 증감</th></tr>${v.sims.map((s) => `<tr><td>${s.n}</td><td style="color:var(--muted)">${s.reg}</td><td class="n">${fmt(s.series[4])}</td><td class="n" style="color:${s.series[4] >= s.series[0] ? 'var(--good)' : 'var(--risk)'}">${s.series[4] >= s.series[0] ? '+' : ''}${Math.round((s.series[4] / s.series[0] - 1) * 100)}%</td></tr>`).join('')}</table>`,
       ) +
       sec(
         3,
@@ -435,7 +451,7 @@ export function getDetailHtml(item, A) {
       sec(
         2,
         '판단 근거 및 데이터',
-        `<div class="vizbox">${lineChart(trendYears, [{ v: trendValues, c: v.v2 === '하락' ? '#C2634C' : '#12557E', area: true, last: latestInterest === null ? null : displayInterest(latestInterest) }], { max: 110, preserveNulls: true })}<p class="vizcap">주제 키워드군(${T.kw})의 통합 검색 관심도. 최댓값 100 기준 상대 지수입니다.</p></div><table class="dt" style="margin-top:12px"><tr><th>세부 키워드</th><th class="n">${firstYear}</th><th class="n">${latestYear}</th><th>추이</th></tr>${T.detail.map((d) => `<tr><td>${d.k}</td><td class="n" style="color:var(--muted)">${displayInterest(d.firstInterest)}</td><td class="n"><b>${displayInterest(d.latestInterest)}</b></td><td><span class="tagsm ${d.d === '상승' ? 'g' : d.d === '하락' ? 'r' : 'n'}">${d.d}</span></td></tr>`).join('')}</table><p class="vizcap" style="margin-top:9px">핵심 프로그램에 포함된 요소별로 관심 흐름이 다릅니다. 같은 주제 안에서도 상승 키워드와 하락 키워드를 구분해 배치 비중을 정하는 근거로 사용합니다.</p>`,
+        `<div class="vizbox">${lineChart(trendYears, [{ v: trendValues, c: v.v2 === '하락' ? CHART.danger : CHART.violet, area: true, last: latestInterest === null ? null : displayInterest(latestInterest) }], { max: 110, preserveNulls: true })}<p class="vizcap">주제 키워드군(${T.kw})의 통합 검색 관심도. 최댓값 100 기준 상대 지수입니다.</p></div><table class="dt" style="margin-top:12px"><tr><th>세부 키워드</th><th class="n">${firstYear}</th><th class="n">${latestYear}</th><th>추이</th></tr>${T.detail.map((d) => `<tr><td>${d.k}</td><td class="n" style="color:var(--muted)">${displayInterest(d.firstInterest)}</td><td class="n"><b>${displayInterest(d.latestInterest)}</b></td><td><span class="tagsm ${d.d === '상승' ? 'g' : d.d === '하락' ? 'r' : 'n'}">${d.d}</span></td></tr>`).join('')}</table><p class="vizcap" style="margin-top:9px">핵심 프로그램에 포함된 요소별로 관심 흐름이 다릅니다. 같은 주제 안에서도 상승 키워드와 하락 키워드를 구분해 배치 비중을 정하는 근거로 사용합니다.</p>`,
       ) +
       sec(
         3,
@@ -652,7 +668,7 @@ export function getDetailHtml(item, A) {
         2,
         '판단 근거 및 데이터',
         v.cf.length
-          ? `<div class="vizbox">${gantt(v.cf, sd, ed, p.name || '이번 축제')}<p class="vizcap">진한 막대가 이번 기획안의 개최 기간입니다. 빨간색은 기간이 겹치는 행사, 주황색은 전후 3일 내 인접 행사입니다.</p><div class="legend"><span><i style="background:#12557E"></i>이번 축제</span><span><i style="background:#C2634C"></i>기간 중복</span><span><i style="background:#D8A33F"></i>인접</span><span><i style="background:#B9C7D2"></i>주의 범위</span></div></div><table class="dt" style="margin-top:12px"><tr><th>행사명</th><th>권역</th><th class="n">거리</th><th class="n">규모</th><th>구분</th></tr>${v.cf.map((c) => `<tr class="${c.lv === 'direct' ? 'hit2' : c.lv === 'near' ? 'hit' : ''}"><td><b>${c.n}</b><div style="color:var(--muted);font-size:11px">${dfmt(c.b1)}~${dfmt(c.b2)} · 최근 5년 ${displayConflictValue(c.held, '회')}</div></td><td style="color:var(--muted)">${c.reg}</td><td class="n">${displayConflictValue(c.km, 'km')}</td><td class="n">${displayConflictNumber(c.scale, '명')}</td><td><span class="tagsm ${c.lv === 'direct' ? 'r' : c.lv === 'near' ? 'w' : 'n'}">${lvName[c.lv]}</span></td></tr>`).join('')}</table>`
+          ? `<div class="vizbox">${gantt(v.cf, sd, ed, p.name || '이번 축제')}<p class="vizcap">진한 막대가 이번 기획안의 개최 기간입니다. 빨간색은 기간이 겹치는 행사, 주황색은 전후 3일 내 인접 행사입니다.</p><div class="legend"><span><i style="background:var(--color-primary)"></i>이번 축제</span><span><i style="background:var(--color-danger)"></i>기간 중복</span><span><i style="background:var(--color-warning)"></i>인접</span><span><i style="background:var(--color-track)"></i>주의 범위</span></div></div><table class="dt" style="margin-top:12px"><tr><th>행사명</th><th>권역</th><th class="n">거리</th><th class="n">규모</th><th>구분</th></tr>${v.cf.map((c) => `<tr class="${c.lv === 'direct' ? 'hit2' : c.lv === 'near' ? 'hit' : ''}"><td><b>${c.n}</b><div style="color:var(--muted);font-size:11px">${dfmt(c.b1)}~${dfmt(c.b2)} · 최근 5년 ${displayConflictValue(c.held, '회')}</div></td><td style="color:var(--muted)">${c.reg}</td><td class="n">${displayConflictValue(c.km, 'km')}</td><td class="n">${displayConflictNumber(c.scale, '명')}</td><td><span class="tagsm ${c.lv === 'direct' ? 'r' : c.lv === 'near' ? 'w' : 'n'}">${lvName[c.lv]}</span></td></tr>`).join('')}</table>`
           : `<div class="vizbox"><p class="read" style="font-size:12.5px">반경 80km · ±7일 범위에서 최근 5년 중 3회 이상 반복 개최된 행사가 확인되지 않았습니다.</p></div>`,
       ) +
       sec(
@@ -805,8 +821,8 @@ export function getDetailHtml(item, A) {
           { n: '음식점 · 상권', v: [P.r5.food, P.r15.food] },
           { n: '숙박', v: [P.r5.stay, P.r15.stay] },
         ],
-        ['#12557E', '#A9C9DD'],
-      )}<div class="legend"><span><i style="background:#12557E"></i>반경 5km</span><span><i style="background:#A9C9DD"></i>반경 15km</span></div><p class="vizcap">행사장(${p.venue || '미입력'}) 기준 POI 집계입니다.</p></div><table class="dt" style="margin-top:12px"><tr><th>주요 연계 자원</th><th>구분</th><th class="n">거리</th></tr>${R.poiList.map((x) => `<tr><td><b>${x.n}</b><div style="color:var(--muted);font-size:11px">${x.note}</div></td><td><span class="tagsm n">${x.t}</span></td><td class="n">${x.km}km</td></tr>`).join('')}</table><div class="metricrow c3" style="margin-top:11px">${mt('숙박 수용 인원', `${fmt(v.stayCap)}<small>명</small>`, '객실당 2.2명 적용')}${mt('일평균 방문객', `${fmt(A.daily)}<small>명</small>`, `${A.days}일 기준`)}${mt('상권 규모', `${fmt(P.r15.food)}<small>개</small>`, '음식점 · 판매 시설')}</div>`,
+        [CHART.primary, CHART.cyan],
+      )}<div class="legend"><span><i style="background:var(--color-primary)"></i>반경 5km</span><span><i style="background:var(--color-data-cyan)"></i>반경 15km</span></div><p class="vizcap">행사장(${p.venue || '미입력'}) 기준 POI 집계입니다.</p></div><table class="dt" style="margin-top:12px"><tr><th>주요 연계 자원</th><th>구분</th><th class="n">거리</th></tr>${R.poiList.map((x) => `<tr><td><b>${x.n}</b><div style="color:var(--muted);font-size:11px">${x.note}</div></td><td><span class="tagsm n">${x.t}</span></td><td class="n">${x.km}km</td></tr>`).join('')}</table><div class="metricrow c3" style="margin-top:11px">${mt('숙박 수용 인원', `${fmt(v.stayCap)}<small>명</small>`, '객실당 2.2명 적용')}${mt('일평균 방문객', `${fmt(A.daily)}<small>명</small>`, `${A.days}일 기준`)}${mt('상권 규모', `${fmt(P.r15.food)}<small>개</small>`, '음식점 · 판매 시설')}</div>`,
     ) +
     sec(
       3,

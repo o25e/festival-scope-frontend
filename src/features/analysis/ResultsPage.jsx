@@ -31,8 +31,8 @@ export function ResultErrorScreen({ error, onBack }) {
   )
 }
 
-const VISITOR_MEDIAN_BAR_COLOR = '#CBDCE8'
-const VISITOR_TARGET_BAR_COLOR = '#12557E'
+const VISITOR_MEDIAN_BAR_COLOR = 'var(--color-track)'
+const VISITOR_TARGET_BAR_COLOR = 'var(--color-data-blue)'
 
 function MiniBars({ values = [], highlight = null }) {
   const max = Math.max(...values, 1)
@@ -87,7 +87,7 @@ function VisitorBars({ values, maxValue }) {
     </svg>
   )
 }
-function Sparkline({ values, color = '#12557E' }) {
+function Sparkline({ values, color = 'var(--color-data-blue)' }) {
   const max = Math.max(...values),
     min = Math.min(...values) * 0.92,
     pts = values
@@ -120,7 +120,7 @@ function ResultCard({ item, A, onOpen, selected }) {
   const d = cardData(item, A)
   return (
     <button
-      className={`card ${selected ? 'sel' : ''}`}
+      className={`card card-${item.key} ${selected ? 'sel' : ''}`}
       onClick={() => onOpen(item.key)}
     >
       <div className="card-top">
@@ -168,7 +168,7 @@ function ResultCard({ item, A, onOpen, selected }) {
       {item.key === 'trend' && (
         <Sparkline
           values={d.bars}
-          color={d.tone === 'r' ? '#C2634C' : '#12557E'}
+          color="var(--color-data-violet)"
         />
       )}
       {item.key === 'demand' && (

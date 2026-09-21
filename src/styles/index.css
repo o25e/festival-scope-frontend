@@ -1,23 +1,45 @@
 :root {
-  --ink: #132434;
-  --ink2: #3c4e5f;
-  --muted: #6c7d8c;
-  --faint: #93a2af;
-  --paper: #edf1f4;
-  --surface: #fff;
-  --line: #d9e1e8;
-  --line2: #eaf0f4;
-  --brand: #12557e;
-  --brand2: #1b75a8;
-  --brandsoft: #e6f0f7;
-  --good: #17754f;
-  --goodsoft: #e4f2eb;
-  --warn: #8e6207;
-  --warnsoft: #fbf0dc;
-  --risk: #a03a27;
-  --risksoft: #fbeae6;
+  /* FestivalScope shared color system. Keep page styles consuming these tokens. */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-soft: #eff6ff;
+  --color-data-blue: #3b82f6;
+  --color-data-violet: #7c3aed;
+  --color-data-cyan: #0891b2;
+  --color-success: #16a34a;
+  --color-success-soft: #f0fdf4;
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-track: #e8eef5;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+
+  /* Backward-compatible aliases used throughout the existing screens. */
+  --ink: var(--color-text);
+  --ink2: var(--color-text-secondary);
+  --muted: var(--color-text-muted);
+  --faint: #94a3b8;
+  --paper: var(--color-bg);
+  --surface: var(--color-surface);
+  --line: var(--color-border);
+  --line2: #f1f5f9;
+  --brand: var(--color-primary);
+  --brand2: var(--color-primary-hover);
+  --brandsoft: var(--color-primary-soft);
+  --good: var(--color-success);
+  --goodsoft: var(--color-success-soft);
+  --warn: var(--color-warning);
+  --warnsoft: var(--color-warning-soft);
+  --risk: var(--color-danger);
+  --risksoft: var(--color-danger-soft);
   --r: 4px;
-  --shadow: 0 1px 2px rgba(19, 36, 52, 0.06), 0 8px 24px rgba(19, 36, 52, 0.07);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.07);
 }
 * {
   box-sizing: border-box;
@@ -132,7 +154,7 @@ select:focus-visible {
 }
 .flow-step.on b {
   background: var(--brand);
-  color: #fff;
+  color: var(--color-surface);
   border-color: var(--brand);
 }
 .flow-step.done {
@@ -141,7 +163,7 @@ select:focus-visible {
 .flow-step.done b {
   background: var(--brandsoft);
   color: var(--brand);
-  border-color: #c4dbeb;
+  border-color: var(--color-primary-soft);
 }
 .flow-sep {
   display: block;
@@ -255,11 +277,11 @@ select:focus-visible {
 }
 .stepchip.on b {
   background: var(--brand);
-  color: #fff;
+  color: var(--color-surface);
 }
 .stepchip.ok b {
   background: var(--good);
-  color: #fff;
+  color: var(--color-surface);
 }
 .fieldgrid {
   display: grid;
@@ -312,12 +334,12 @@ select:focus-visible {
 .field select:focus {
   border-color: var(--brand2);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(27, 117, 168, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 .field.err input,
 .field.err select {
   border-color: var(--risk);
-  background: #fffbfa;
+  background: var(--color-danger-soft);
 }
 .chips {
   display: flex;
@@ -414,7 +436,7 @@ select:focus-visible {
   font-weight: 500;
   line-height: 1;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(18, 85, 126, 0.12);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-primary) 16%, transparent);
   transition:
     background 0.12s,
     color 0.12s,
@@ -423,8 +445,8 @@ select:focus-visible {
 }
 .program-add-button:hover {
   background: var(--brand);
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(18, 85, 126, 0.2);
+  color: var(--color-surface);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-primary) 24%, transparent);
   transform: translateY(-1px);
 }
 .program-add-row {
@@ -453,7 +475,7 @@ select:focus-visible {
   gap: 12px;
   padding: 18px 26px;
   border-top: 1px solid var(--line2);
-  background: #fbfcfd;
+  background: var(--color-surface);
 }
 .btn {
   height: 38px;
@@ -478,14 +500,14 @@ select:focus-visible {
 .btn-primary {
   background: var(--brand);
   border-color: var(--brand);
-  color: #fff;
+  color: var(--color-surface);
 }
 .btn-primary:hover {
-  background: #0e4568;
+  background: var(--color-primary-hover);
 }
 .btn-primary:disabled {
-  background: #a9becd;
-  border-color: #a9becd;
+  background: var(--color-track);
+  border-color: var(--color-track);
   cursor: not-allowed;
 }
 .btn-sm {
@@ -506,7 +528,7 @@ select:focus-visible {
   padding: 13px 16px;
   border-radius: var(--r);
   background: var(--risksoft);
-  border: 1px solid #f0cfc8;
+  border: 1px solid var(--color-danger);
   color: var(--risk);
   font-size: 12.5px;
 }
@@ -597,7 +619,7 @@ select:focus-visible {
 .an-item.fin .dot {
   background: var(--good);
   border-color: var(--good);
-  color: #fff;
+  color: var(--color-surface);
 }
 @keyframes spin {
   to {
@@ -718,13 +740,35 @@ select:focus-visible {
   background: var(--brand2);
 }
 .track.w i {
-  background: #c79a3c;
+  background: var(--color-warning);
 }
 .track.r i {
-  background: #c2634c;
+  background: var(--color-danger);
 }
 .track.g i {
-  background: #2d8e67;
+  background: var(--color-success);
+}
+.railrow:nth-child(1) .track i {
+  background: var(--color-data-blue);
+}
+.railrow:nth-child(2) .track i {
+  background: var(--color-data-violet);
+}
+.railrow:nth-child(3) .track i {
+  background: var(--color-data-cyan);
+}
+.railrow-visitor .track i,
+.card-visitor .minibars i.hi {
+  background: var(--color-data-blue);
+}
+.railrow-trend .track i,
+.card-trend .minibars i.hi {
+  background: var(--color-data-violet);
+}
+.railrow-demand .track i,
+.card-demand .minibars i.hi,
+.card-link .minibars i.hi {
+  background: var(--color-data-cyan);
 }
 .railrow .rv2 {
   font-size: 13px;
@@ -782,7 +826,7 @@ select:focus-visible {
   position: relative;
 }
 .card:hover {
-  border-color: #b9cddc;
+  border-color: var(--color-primary);
   box-shadow: var(--shadow);
   transform: translateY(-1px);
 }
@@ -855,7 +899,7 @@ select:focus-visible {
 }
 .minibars i {
   flex: 1;
-  background: #cbdce8;
+  background: var(--color-track);
   border-radius: 1px;
   min-height: 3px;
 }
@@ -874,7 +918,7 @@ select:focus-visible {
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(19, 36, 52, 0.28);
+  background: rgba(15, 23, 42, 0.28);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
@@ -898,7 +942,7 @@ select:focus-visible {
   flex-direction: column;
   transform: translateX(100%);
   transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
-  box-shadow: -12px 0 40px rgba(19, 36, 52, 0.1);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.1);
 }
 .panel.on {
   transform: none;
@@ -960,7 +1004,7 @@ select:focus-visible {
   border-top: 1px solid var(--line2);
   display: flex;
   gap: 9px;
-  background: #fbfcfd;
+  background: var(--color-surface);
 }
 .sect {
   padding-top: 20px;
@@ -976,7 +1020,7 @@ select:focus-visible {
   height: 17px;
   border-radius: 50%;
   background: var(--brand);
-  color: #fff;
+  color: var(--color-surface);
   font-size: 10px;
   display: grid;
   place-items: center;
@@ -1002,7 +1046,7 @@ select:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 11px 13px;
-  background: #fbfcfd;
+  background: var(--color-surface);
 }
 .metric .lbl {
   font-size: 11.5px;
@@ -1021,7 +1065,7 @@ select:focus-visible {
 }
 .metric.hl {
   background: var(--brandsoft);
-  border-color: #c4dbeb;
+  border-color: var(--color-primary-soft);
 }
 .metric.hl .mv {
   color: var(--brand);
@@ -1221,7 +1265,7 @@ select:focus-visible {
     display: none !important;
   }
   body {
-    background: #fff;
+    background: var(--color-surface);
   }
   .rpt {
     border: none;
@@ -1318,8 +1362,8 @@ select:focus-visible {
   top: 0;
   z-index: 60;
   height: 58px;
-  color: #fff;
-  background: #12224a;
+  color: var(--color-surface);
+  background: var(--color-text);
 }
 .landing-wrap {
   width: min(1240px, 100%);
@@ -1337,7 +1381,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   padding: 0;
-  color: #fff;
+  color: var(--color-surface);
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -1347,11 +1391,11 @@ select:focus-visible {
   height: 8px;
   flex: none;
   border-radius: 50%;
-  background: #61a0ff;
+  background: var(--color-data-blue);
 }
 .landing-nav-sub {
   margin-left: 4px;
-  color: #9fb0d0;
+  color: var(--color-text-muted);
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0;
@@ -1382,23 +1426,23 @@ select:focus-visible {
   opacity: 0.6;
 }
 .landing-btn-primary {
-  color: #fff;
-  background: #12224a;
+  color: var(--color-surface);
+  background: var(--color-primary);
 }
 .landing-btn-primary:hover {
-  background: #1b3268;
+  background: var(--color-primary-hover);
 }
 .landing-btn-ghost {
-  color: #12224a;
-  background: #fff;
-  border: 1px solid #e3e7ef;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 .landing-btn-ghost:hover {
-  background: #e8edf7;
+  background: var(--color-primary-soft);
 }
 .landing-btn-onnavy {
   padding: 6px 11px;
-  color: #fff;
+  color: var(--color-surface);
   background: rgba(255, 255, 255, 0.13);
   font-size: 12.5px;
 }
@@ -1412,8 +1456,8 @@ select:focus-visible {
 }
 .landing-page {
   min-height: calc(100vh - 58px);
-  color: #1a2233;
-  background: #f4f6fa;
+  color: var(--color-text);
+  background: var(--color-bg);
 }
 .landing-hero {
   padding: 88px 0 64px;
@@ -1424,14 +1468,14 @@ select:focus-visible {
   margin-bottom: 22px;
   padding: 6px 13px;
   border-radius: 999px;
-  color: #12224a;
-  background: #e8edf7;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-soft);
   font-size: 12px;
   font-weight: 700;
 }
 .landing-hero h1 {
   margin: 0 0 20px;
-  color: #12224a;
+  color: var(--color-text);
   font-size: 44px;
   font-weight: 800;
   letter-spacing: -1.2px;
@@ -1440,7 +1484,7 @@ select:focus-visible {
 .landing-sub {
   max-width: 600px;
   margin: 0 auto 32px;
-  color: #6b7689;
+  color: var(--color-text-secondary);
   font-size: 16px;
   line-height: 1.8;
 }
@@ -1453,10 +1497,10 @@ select:focus-visible {
 }
 .landing-chip {
   padding: 8px 15px;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  color: #6b7689;
-  background: #fff;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
   font-size: 12.5px;
 }
 .landing-how {
@@ -1464,7 +1508,7 @@ select:focus-visible {
 }
 .landing-how h2 {
   margin: 0 0 28px;
-  color: #12224a;
+  color: var(--color-text);
   font-size: 21px;
   letter-spacing: -0.3px;
   text-align: center;
@@ -1476,10 +1520,10 @@ select:focus-visible {
 }
 .landing-step {
   padding: 24px;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(18, 34, 74, 0.05), 0 6px 20px rgba(18, 34, 74, 0.05);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
 }
 .landing-step-number {
   display: flex;
@@ -1489,26 +1533,26 @@ select:focus-visible {
   height: 26px;
   margin-bottom: 13px;
   border-radius: 7px;
-  color: #fff;
-  background: #12224a;
+  color: var(--color-surface);
+  background: var(--color-primary);
   font-size: 12.5px;
   font-weight: 700;
 }
 .landing-step h3 {
   margin: 0 0 7px;
-  color: #12224a;
+  color: var(--color-text);
   font-size: 15px;
 }
 .landing-step p {
   margin: 0;
-  color: #6b7689;
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.7;
 }
 .landing-footer {
   padding: 22px 28px;
-  border-top: 1px solid #e3e7ef;
-  color: #939db0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 12px;
   text-align: center;
 }
@@ -1520,7 +1564,7 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(18, 34, 74, 0.45);
+  background: rgba(15, 23, 42, 0.45);
 }
 .landing-modal {
   position: relative;
@@ -1528,17 +1572,17 @@ select:focus-visible {
   max-width: 420px;
   padding: 32px;
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  background: var(--color-surface);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
 }
 .landing-modal h2 {
   margin: 0 0 6px;
-  color: #12224a;
+  color: var(--color-text);
   font-size: 19px;
 }
 .landing-modal-sub {
   margin: 0 0 22px;
-  color: #6b7689;
+  color: var(--color-text-secondary);
   font-size: 13px;
 }
 .landing-modal-close {
@@ -1546,14 +1590,14 @@ select:focus-visible {
   top: 24px;
   right: 28px;
   padding: 0;
-  color: #939db0;
+  color: var(--color-text-muted);
   font-size: 22px;
   line-height: 1;
 }
 .landing-field-label {
   display: block;
   margin-bottom: 6px;
-  color: #1a2233;
+  color: var(--color-text);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1561,26 +1605,26 @@ select:focus-visible {
   width: 100%;
   margin-bottom: 14px;
   padding: 10px 12px;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  color: #1a2233;
-  background: #fafbfd;
+  color: var(--color-text);
+  background: var(--color-surface);
   font: inherit;
   font-size: 13.5px;
 }
 .landing-input:focus {
-  outline: 2px solid #e8edf7;
-  border-color: #12224a;
+  outline: 2px solid var(--color-primary-soft);
+  border-color: var(--color-primary);
 }
 .landing-login-error {
   margin: -2px 0 12px;
-  color: #d24a3d;
+  color: var(--color-danger);
   font-size: 12px;
   line-height: 1.5;
 }
 .landing-login-success {
   margin: -2px 0 12px;
-  color: #1f9d6b;
+  color: var(--color-success);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1590,13 +1634,13 @@ select:focus-visible {
 }
 .landing-auth-switch {
   margin-top: 14px;
-  color: #6b7689;
+  color: var(--color-text-secondary);
   font-size: 12.5px;
   text-align: center;
 }
 .landing-auth-switch button {
   padding: 0;
-  color: #12224a;
+  color: var(--color-primary-hover);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
