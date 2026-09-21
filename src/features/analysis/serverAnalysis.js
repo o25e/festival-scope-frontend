@@ -148,7 +148,11 @@ export const normalizeAnalysisReport = (response) => {
       : response?.data && typeof response.data === 'object'
         ? response.data
         : response || {}
-  const summary = root?.summary || {}
+  const summary = root?.summary && typeof root.summary === 'object'
+    ? root.summary
+    : Array.isArray(root?.items)
+      ? root
+      : {}
   const summaryItems = Array.isArray(summary.items) ? summary.items : []
   const normalizedSummaryItems = summaryItems.map((item) =>
     item?.itemType === 'TOURISM_LINKAGE' ? stripTourismLinkageScore(item) : item,

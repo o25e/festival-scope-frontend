@@ -12,7 +12,7 @@ const isAnalysisId = (value) => {
 export const getAnalysisId = (response) => {
   const value = isAnalysisId(response)
     ? response
-    : response?.data ?? response?.analysisId
+    : response?.data?.analysisId ?? response?.data ?? response?.analysisId
   return isAnalysisId(value) ? String(value).trim() : null
 }
 
@@ -72,7 +72,9 @@ export const getAnalysisReport = (analysisId, options = {}) => {
   ).then((response) => {
     const successfulResponse = assertSuccess(response, '분석 최종 리포트를 불러오지 못했습니다.')
     if (successfulResponse?.summary) return successfulResponse
-    if (successfulResponse?.data?.summary) return successfulResponse.data
+    if (successfulResponse?.data && typeof successfulResponse.data === 'object') {
+      return successfulResponse.data
+    }
     return successfulResponse
   })
 }

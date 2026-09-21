@@ -195,14 +195,18 @@ const loadServerAnalysisData = async (analysisId, options = {}) => {
   return { summary, details: Object.fromEntries(detailEntries) }
 }
 
-const buildAnalysisPlan = (summary = {}, document = null) => {
+const buildAnalysisPlan = (summary = {}, document = null, details = {}) => {
   const documentPlan = document?.plan && typeof document.plan === 'object'
     ? document.plan
     : {}
   const targetSummaryItem = Array.isArray(summary.items)
     ? summary.items.find((item) => item?.itemType === 'TARGET_VISITOR')
     : null
-  const targetDetail = targetSummaryItem?.targetVisitor || {}
+  const targetDetail = details?.TARGET_VISITOR?.targetVisitor && typeof details.TARGET_VISITOR.targetVisitor === 'object'
+    ? details.TARGET_VISITOR.targetVisitor
+    : details?.TARGET_VISITOR && typeof details.TARGET_VISITOR === 'object'
+      ? details.TARGET_VISITOR
+      : targetSummaryItem?.targetVisitor || {}
   const summaryRegion = reportRegion(summary)
   const documentRegion = reportRegion(document || {})
 
@@ -386,7 +390,17 @@ export default function App() {
   }, [stage, step])
 
   const handleDocumentsLoaded = useCallback((nextDocuments) => {
-    setDocuments(nextDocuments)
+    setDocuments((currentDocuments) => nextDocuments.map((document) => {
+      const cachedDocument = currentDocuments.find(
+        (current) => String(current.analysisId) === String(document.analysisId),
+      )
+      if (!cachedDocument) return document
+      return {
+        ...document,
+        plan: document.plan || cachedDocument.plan,
+        analysis: document.analysis || cachedDocument.analysis,
+      }
+    }))
   }, [])
 
   useEffect(() => {
@@ -456,7 +470,7 @@ export default function App() {
       }))
       .then(({ response, tourismLinkageDetail }) => {
         if (!active) return
-        const reportSummary = response?.summary || {}
+        const reportSummary = response?.summary || (Array.isArray(response?.items) ? response : {})
         const reportName = reportSummary.festivalName
         const reportDocument =
           String(activeDocument?.analysisId) === route.analysisId
@@ -532,7 +546,7 @@ export default function App() {
       .then(() => loadServerAnalysisData(route.analysisId, { signal: controller.signal }))
       .then(({ summary, details }) => {
         if (!active) return
-        const resultPlan = buildAnalysisPlan(summary, document)
+        const resultPlan = buildAnalysisPlan(summary, document, details)
         const nextAnalysis = mergeServerAnalysis(analyze(resultPlan), summary, details)
         setPlan(resultPlan)
         setAnalysis(nextAnalysis)
@@ -630,6 +644,15 @@ export default function App() {
         plan,
         analysis,
       }
+      setDocuments((currentDocuments) => {
+        const existingIndex = currentDocuments.findIndex(
+          (current) => String(current.analysisId) === String(id),
+        )
+        if (existingIndex < 0) return [...currentDocuments, document]
+        return currentDocuments.map((current, index) =>
+          index === existingIndex ? { ...current, ...document } : current,
+        )
+      })
       setActiveDocument(document)
       setResultState({ status: 'success', error: null })
       setStage('result')
@@ -841,11 +864,24 @@ export default function App() {
           onDocumentsLoaded={handleDocumentsLoaded}
           onParsedPlan={handleParsedPlan}
           onOpenAnalysis={(document) => {
-            setActiveDocument(document)
-            setResultState({ status: 'loading', error: null })
+            const cachedDocument = documents.find(
+              (current) => String(current.analysisId) === String(document.analysisId),
+            )
+            const selectedDocument = {
+              ...cachedDocument,
+              ...document,
+              plan: document.plan || cachedDocument?.plan,
+              analysis: document.analysis || cachedDocument?.analysis,
+            }
+            const cachedAnalysis = selectedDocument.analysis || null
+            setActiveDocument(selectedDocument)
+            setResultState({
+              status: cachedAnalysis ? 'success' : 'loading',
+              error: null,
+            })
             setOpenKey(null)
-            setAnalysis(null)
-            const analysisPlan = normalizeFestivalPlan(document.plan || EMPTY_PLAN)
+            setAnalysis(cachedAnalysis)
+            const analysisPlan = normalizeFestivalPlan(selectedDocument.plan || EMPTY_PLAN)
             setPlan(analysisPlan)
             setAutoFilledFields({})
             setStage('result')

@@ -38,7 +38,13 @@ export function DocumentsPage({ onParsedPlan, onOpenAnalysis, onDocumentsLoaded 
     getAnalysisDocuments({ page, size: PAGE_SIZE, signal: controller.signal })
       .then((response) => {
         if (!active) return
-        const content = Array.isArray(response?.content) ? response.content : []
+        const content = Array.isArray(response?.content)
+          ? response.content
+          : Array.isArray(response)
+            ? response
+            : Array.isArray(response?.items)
+              ? response.items
+              : []
         const documents = content.map(mapAnalysisDocument)
         const totalElements = Number(response?.totalElements ?? documents.length)
         const totalPages = Number(

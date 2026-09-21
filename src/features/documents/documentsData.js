@@ -23,14 +23,27 @@ const formatInputDate = (value) => {
   return parts.length === 3 ? `${parts[1]}.${parts[2]}` : String(value)
 }
 
+const normalizeDocumentStatus = (value) => {
+  const status = String(value ?? '').trim().toUpperCase()
+  return {
+    COMPLETED: DOCUMENT_STATUS.COMPLETED,
+    ANALYZING: DOCUMENT_STATUS.ANALYZING,
+    RUNNING: DOCUMENT_STATUS.ANALYZING,
+    WAITING: DOCUMENT_STATUS.WAITING,
+    PENDING: DOCUMENT_STATUS.WAITING,
+  }[status] || value || DOCUMENT_STATUS.COMPLETED
+}
+
 export const mapAnalysisDocument = (item = {}) => ({
   ...item,
-  analysisId: item.analysisId,
-  festivalName: item.festivalName || '-',
-  hostRegion: item.hostRegion || '-',
+  analysisId: item.analysisId ?? item.id,
+  festivalName: item.festivalName || item.name || '-',
+  hostRegion: item.hostRegion || item.region || '-',
   festivalPeriod: formatDateRange(item.festivalStartDate, item.festivalEndDate),
-  inputDate: formatInputDate(item.inputDate),
-  status: item.status || DOCUMENT_STATUS.COMPLETED,
-  overallScore: item.overallScore ?? null,
-  recommendationCount: item.recommendationCount ?? null,
+  inputDate: formatInputDate(item.inputDate ?? item.createdAt),
+  status: normalizeDocumentStatus(item.status ?? item.analysisStatus),
+  overallScore: item.overallScore ?? item.totalScore ?? null,
+  recommendationCount: item.recommendationCount ?? (
+    Array.isArray(item.recommendations) ? item.recommendations.length : null
+  ),
 })
