@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Button } from '../../components/ui'
 import { MONTHS, YEARS } from '../../data/prototype'
 import { dadd, dparse, dfmt, fmt, levelClass, round1 } from '../../utils/formatters'
@@ -158,19 +159,57 @@ function vBars(labels, vals, hl, opt = {}) {
     padL = 8,
     padB = 22,
     padT = 16,
-    mx = Math.max(...vals) * 1.12,
-    bw = (W - padL * 2) / vals.length
+    rows = vals.map((entry, i) => {
+      if (entry && typeof entry === 'object') {
+        const month = Number(entry.month)
+        return {
+          ...entry,
+          isMonthlyRow: true,
+          label:
+            Number.isFinite(month) && month >= 1 && month <= 12
+              ? `${month}월`
+              : labels[i] ?? '-',
+          value: Number(entry.occurrenceRate),
+        }
+      }
+      return {
+        label: labels[i] ?? '-',
+        value: Number(entry),
+      }
+    }),
+    validRows = rows.filter((row) => Number.isFinite(row.value)),
+    maxValue = Math.max(...validRows.map((row) => row.value), 0),
+    mx = maxValue > 0 ? maxValue * 1.12 : 1,
+    bw = validRows.length ? (W - padL * 2) / validRows.length : 0
+  if (!validRows.length) {
+    return `<div class="readbox read"><p>${opt.emptyMessage || '표시할 데이터가 없습니다.'}</p></div>`
+  }
   let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px" role="img">`
   if (opt.ref) {
     const yy = padT + (1 - opt.ref / mx) * (H - padT - padB)
     s += `<line x1="${padL}" y1="${yy}" x2="${W - padL}" y2="${yy}" stroke="${CHART.track}" stroke-dasharray="3 3"/><text x="${W - padL}" y="${yy - 4}" text-anchor="end" font-size="9.5" fill="${CHART.muted}">${opt.refLabel || ''}</text>`
   }
-  vals.forEach((v, i) => {
-    const h = (v / mx) * (H - padT - padB),
+  validRows.forEach((row, i) => {
+    const v = row.value,
+      h = (v / mx) * (H - padT - padB),
       xx = padL + i * bw + bw * 0.16,
       ww = bw * 0.68,
-      on = Array.isArray(hl) ? hl.includes(i) : i === hl
-    s += `<rect x="${xx}" y="${H - padB - h}" width="${ww}" height="${h}" rx="2" fill="${on ? opt.color || CHART.primary : CHART.track}"/>${on ? `<text x="${xx + ww / 2}" y="${H - padB - h - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="${opt.color || CHART.primary}">${v}</text>` : ''}<text x="${xx + ww / 2}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="${on ? CHART.text : CHART.muted}" font-weight="${on ? 600 : 400}">${labels[i]}</text>`
+      on = Array.isArray(hl)
+        ? hl.includes(i)
+        : row.isMonthlyRow
+          ? Number(row.month) === Number(hl) + 1
+          : i === hl
+    const tooltip = [
+      `${row.label}: ${Number.isFinite(v) ? `${v}%` : '-'}`,
+      row.rainDays === null || row.rainDays === undefined ? null : `강수일 ${row.rainDays}일`,
+      row.validDays === null || row.validDays === undefined ? null : `유효 관측일 ${row.validDays}일`,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    const interactiveAttrs = row.isMonthlyRow
+      ? ` class="weather-monthly-bar" data-weather-month-bar="true" data-month="${row.month}" data-occurrence-rate="${v}" data-rain-days="${row.rainDays ?? ''}" data-valid-days="${row.validDays ?? ''}" tabindex="0"`
+      : ''
+    s += `<rect${interactiveAttrs} x="${xx}" y="${H - padB - h}" width="${ww}" height="${h}" rx="2" fill="${on ? opt.color || CHART.primary : CHART.track}"><title>${tooltip}</title></rect>${on ? `<text x="${xx + ww / 2}" y="${H - padB - h - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="${opt.color || CHART.primary}">${Number.isFinite(v) ? v : '-'}</text>` : ''}<text x="${xx + ww / 2}" y="${H - 7}" text-anchor="middle" font-size="9.5" fill="${on ? CHART.text : CHART.muted}" font-weight="${on ? 600 : 400}">${row.label}</text>`
   })
   return `${s}</svg>`
 }
@@ -684,9 +723,19 @@ export function getDetailHtml(item, A) {
   }
   if (item.key === 'weather') {
     const W = R.weather
+    const weatherMonthIndex = Number.isInteger(Number(m)) && Number(m) >= 0 && Number(m) <= 11 ? Number(m) : null
+    const weatherMonthLabel = weatherMonthIndex === null ? '개최 월' : `${weatherMonthIndex + 1}월`
+    const stationName = typeof W.station?.stationName === 'string' && W.station.stationName.trim()
+      ? W.station.stationName.trim()
+      : null
+    const weatherChartCaption = stationName
+      ? `${stationName} 관측소 기준 월별 강수 발생률입니다. 막대에 마우스를 올리면 월별 상세 정보를 확인할 수 있습니다.`
+      : '월별 강수 발생률입니다. 막대에 마우스를 올리면 월별 상세 정보를 확인할 수 있습니다.'
     const chartValues =
       Array.isArray(W.weatherMonthlyRain)
-        ? W.weatherMonthlyRain
+        ? W.weatherMonthlyRain.filter(
+            (row) => Number.isFinite(Number(row?.month)) && Number(row.month) >= 1 && Number(row.month) <= 12,
+          )
         : W.weatherMonthlyRain === null
           ? []
           : W.rainYears.map((x) => x * 10)
@@ -695,7 +744,7 @@ export function getDetailHtml(item, A) {
     const actualYears = W.actualYears !== undefined ? W.actualYears : 10
     const weatherInterpretation = content.detail
       ? `<div class="readbox read"><p>${content.detail}</p></div>`
-      : `<div class="readbox read"><p>${m + 1}월 동일 시기에 강수가 관측된 해는 최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}입니다(${displayWeatherValue(v.rainP, '%')}). 선택한 핵심 프로그램과 기상 이력을 결합한 행사 기상 취약도는 <strong>${displayWeatherValue(v.wRisk)}점(${v.v5 || '-'})</strong>입니다.</p><p>${
+      : `<div class="readbox read"><p>${weatherMonthLabel} 동일 시기에 강수가 관측된 해는 최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}입니다(${displayWeatherValue(v.rainP, '%')}). 선택한 핵심 프로그램과 기상 이력을 결합한 행사 기상 취약도는 <strong>${displayWeatherValue(v.wRisk)}점(${v.v5 || '-'})</strong>입니다.</p><p>${
           v.wFlags.filter((f) => f.risk).length
             ? `특히 ${v.wFlags
                 .filter((f) => f.risk)
@@ -709,12 +758,12 @@ export function getDetailHtml(item, A) {
       sec(
         1,
         '핵심 지표',
-        `<div class="metricrow c2">${mt('행사 기상 취약도', `${displayWeatherValue(v.wRisk)}<small>/100</small>`, '선택 프로그램과 과거 동일 시기 강수 통계 기반', true)}${mt(`${m + 1}월 강수 발생률`, `${displayWeatherValue(v.rainP)}<small>%</small>`, `최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}`)}</div>`,
+        `<div class="metricrow c2">${mt('행사 기상 취약도', `${displayWeatherValue(v.wRisk)}<small>/100</small>`, '선택 프로그램과 과거 동일 시기 강수 통계 기반', true)}${mt(`${weatherMonthLabel} 강수 발생률`, `${displayWeatherValue(v.rainP)}<small>%</small>`, `최근 ${displayWeatherValue(actualYears, '년')} 중 ${displayWeatherValue(occurrenceYears, '년')}`)}</div>`,
       ) +
       sec(
         2,
         '판단 근거 및 데이터',
-        `<div class="vizbox">${vBars(MONTHS, chartValues, m, { h: 130 })}<p class="vizcap">${R.name} 월별 강수 발생률(최근 10년 중 강수 관측 연수 × 10%). ${W.note}.</p></div><table class="dt weather-evidence-table" style="margin-top:10px"><tr><th>취약 요소</th><th>발생 이력</th></tr>${v.wFlags.map((f) => `<tr><td><b>${f.t}</b> <span class="tagsm ${f.status === null ? 'n' : f.risk ? 'r' : 'n'}">${f.status === null ? '-' : f.status ?? (f.risk ? '취약' : '해당 없음')}</span><div style="color:var(--muted);font-size:11px;margin-top:2px">${f.p}</div></td><td style="font-size:11.5px">${f.d}</td></tr>`).join('')}</table></div>`,
+        `<div class="vizbox weather-monthly-vizbox">${vBars(MONTHS, chartValues, m, { h: 130, emptyMessage: '월별 강수 발생률 데이터가 없습니다.' })}<p class="vizcap">${weatherChartCaption}</p></div><table class="dt weather-evidence-table" style="margin-top:10px"><tr><th>취약 요소</th><th>발생 이력</th></tr>${v.wFlags.map((f) => `<tr><td><b>${f.t}</b> <span class="tagsm ${f.status === null ? 'n' : f.risk ? 'r' : 'n'}">${f.status === null ? '-' : f.status ?? (f.risk ? '취약' : '해당 없음')}</span><div style="color:var(--muted);font-size:11px;margin-top:2px">${f.p}</div></td><td style="font-size:11.5px">${f.d}</td></tr>`).join('')}</table></div>`,
       ) +
       sec(
         3,
@@ -865,6 +914,89 @@ export function getDetailHtml(item, A) {
 }
 
 export function Panel({ item, A, onClose, onEdit, onMove }) {
+  const bodyRef = useRef(null)
+
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body) return undefined
+
+    const bars = Array.from(body.querySelectorAll('[data-weather-month-bar="true"]'))
+    if (!bars.length) return undefined
+
+    const tooltip = document.createElement('div')
+    tooltip.className = 'weather-monthly-tooltip'
+    tooltip.setAttribute('role', 'tooltip')
+    tooltip.hidden = true
+    let activeBar = null
+    let activeBox = null
+
+    const hideTooltip = () => {
+      if (activeBar) activeBar.classList.remove('is-hovered')
+      activeBar = null
+      activeBox = null
+      tooltip.hidden = true
+    }
+
+    const positionTooltip = () => {
+      if (!activeBar || !activeBox || tooltip.hidden) return
+      const barRect = activeBar.getBoundingClientRect()
+      const boxRect = activeBox.getBoundingClientRect()
+      const tooltipWidth = tooltip.offsetWidth
+      const tooltipHeight = tooltip.offsetHeight
+      const barCenter = barRect.left - boxRect.left + barRect.width / 2
+      const left = Math.max(
+        tooltipWidth / 2 + 8,
+        Math.min(barCenter, boxRect.width - tooltipWidth / 2 - 8),
+      )
+      let top = barRect.top - boxRect.top - tooltipHeight - 8
+      if (top < 8) top = barRect.bottom - boxRect.top + 8
+      if (top + tooltipHeight > boxRect.height - 8) {
+        top = Math.max(8, boxRect.height - tooltipHeight - 8)
+      }
+      tooltip.style.left = `${left}px`
+      tooltip.style.top = `${top}px`
+    }
+
+    const showTooltip = (bar) => {
+      const box = bar.closest('.weather-monthly-vizbox')
+      if (!box) return
+      if (activeBar) activeBar.classList.remove('is-hovered')
+      activeBar = bar
+      activeBox = box
+      const month = bar.dataset.month
+      const occurrenceRate = bar.dataset.occurrenceRate
+      const rainDays = bar.dataset.rainDays || '-'
+      const validDays = bar.dataset.validDays || '-'
+      tooltip.innerHTML = `<strong>${month}월</strong><span>강수 발생률 ${occurrenceRate}%</span><span>강수일 수 ${rainDays}일</span><span>유효 관측일 수 ${validDays}일</span>`
+      box.appendChild(tooltip)
+      activeBar.classList.add('is-hovered')
+      tooltip.hidden = false
+      tooltip.style.visibility = 'hidden'
+      positionTooltip()
+      tooltip.style.visibility = 'visible'
+    }
+
+    const listeners = []
+    const listen = (bar, event, handler) => {
+      bar.addEventListener(event, handler)
+      listeners.push(() => bar.removeEventListener(event, handler))
+    }
+    bars.forEach((bar) => {
+      listen(bar, 'pointerenter', () => showTooltip(bar))
+      listen(bar, 'pointermove', positionTooltip)
+      listen(bar, 'pointerleave', hideTooltip)
+      listen(bar, 'focus', () => showTooltip(bar))
+      listen(bar, 'blur', hideTooltip)
+    })
+    window.addEventListener('resize', positionTooltip)
+
+    return () => {
+      listeners.forEach((removeListener) => removeListener())
+      window.removeEventListener('resize', positionTooltip)
+      tooltip.remove()
+    }
+  }, [item, A])
+
   if (!item) return null
   const d = cardData(item, A)
   return (
@@ -914,6 +1046,7 @@ export function Panel({ item, A, onClose, onEdit, onMove }) {
           </div>
         </div>
         <div
+          ref={bodyRef}
           className="p-body"
           dangerouslySetInnerHTML={{ __html: getDetailHtml(item, A) }}
         />

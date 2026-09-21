@@ -907,8 +907,15 @@ const weatherModel = (baseAnalysis, detail) => {
   const occurrenceYears = asNumber(rain.occurrenceYears)
   const rainDays = asNumber(rain.rainDays)
   const actualYears = asNumber(period.actualYears)
-  const weatherMonthlyRain = Array.isArray(detail?.monthlyRainOccurrenceRates)
-    ? detail.monthlyRainOccurrenceRates.map((row) => asNumber(row?.occurrenceRate))
+  const weatherMonthlyRain = Array.isArray(rain.monthlyRainOccurrenceRates)
+    ? rain.monthlyRainOccurrenceRates
+        .map((row) => ({
+          month: asNumber(row?.month),
+          validDays: asNumber(row?.validDays),
+          rainDays: asNumber(row?.rainDays),
+          occurrenceRate: asNumber(row?.occurrenceRate),
+        }))
+        .sort((a, b) => (a.month ?? Number.POSITIVE_INFINITY) - (b.month ?? Number.POSITIVE_INFINITY))
     : null
   const weatherValues = {
     occurrenceYears,

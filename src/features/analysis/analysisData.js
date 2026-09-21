@@ -315,12 +315,14 @@ export function cardData(item, A, options = {}) {
             : '반경 80km 내에서 같은 시기에 반복 개최되는 행사가 확인되지 않았습니다.'),
       bars: [],
     }
-  if (item.key === 'weather')
+  if (item.key === 'weather') {
+    const weatherMonthIndex = Number.isInteger(Number(A.m)) && Number(A.m) >= 0 && Number(A.m) <= 11 ? Number(A.m) : null
+    const weatherMonthLabel = weatherMonthIndex === null ? '개최 월' : `${weatherMonthIndex + 1}월`
     return {
       pill: `취약도 ${v.v5 ?? '-'}`,
       tone: v.v5 === '높음' ? 'r' : v.v5 === '보통' ? 'w' : 'g',
       metric: v.rainP === null || v.rainP === undefined ? '-' : `${v.rainP}%`,
-      unit: `${A.m + 1}월 동일 시기 강수 발생률`,
+      unit: `${weatherMonthLabel} 동일 시기 강수 발생률`,
       sub: [['기상 취약 프로그램', `${A.progs.filter((x) => x.out || x.wind || x.fog).length}개`]],
       read:
         content.summary ||
@@ -328,6 +330,7 @@ export function cardData(item, A, options = {}) {
       bars: A.R.weather.rainYears,
       highlight: A.m,
     }
+  }
   if (item.key === 'link' && A.linkage) {
     const reportItem = A.report?.items?.TOURISM_LINKAGE
     const reportDetail = A.report?.details?.TOURISM_LINKAGE
