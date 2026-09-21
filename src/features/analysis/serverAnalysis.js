@@ -278,38 +278,20 @@ const normalizePoiList = (linkage) => {
   return result
 }
 
-const normalizeRegionalIndicator = (value) => {
-  const indicator = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
-  return {
-    name: indicator.name ?? null,
-    value: asNumber(indicator.value),
-  }
-}
-
 const normalizeTourismLinkageModel = (summary, detail) => {
   const linkage = detail?.tourismLinkage && typeof detail.tourismLinkage === 'object'
     ? detail.tourismLinkage
     : {}
-  const regionalIndicators = detail?.regionalIndicators && typeof detail.regionalIndicators === 'object'
-    ? detail.regionalIndicators
-    : linkage.regionalIndicators || {}
   return {
     totalCandidatePoiCount: asNumber(linkage.totalCandidatePoiCount),
     tourismCultureCount: asNumber(linkage.tourismCultureCount),
     foodShoppingCount: asNumber(linkage.foodShoppingCount),
     accommodationCount: asNumber(linkage.accommodationCount),
     tourismLinkageSummary: linkage.tourismLinkageSummary ?? null,
-    consumptionLinkageSummary: linkage.consumptionLinkageSummary ?? null,
-    stayLinkageSummary: linkage.stayLinkageSummary ?? null,
     poiSummary: {
       within3km: normalizePoiRange(linkage.poiSummary?.within3km),
       between3And5km: normalizePoiRange(linkage.poiSummary?.between3And5km),
       within5km: normalizePoiRange(linkage.poiSummary?.within5km),
-    },
-    regionalIndicators: {
-      resourceDemand: normalizeRegionalIndicator(regionalIndicators.resourceDemand),
-      consumptionIntensity: normalizeRegionalIndicator(regionalIndicators.consumptionIntensity),
-      stayIntensity: normalizeRegionalIndicator(regionalIndicators.stayIntensity),
     },
     pois: normalizePoiList(linkage),
   }
