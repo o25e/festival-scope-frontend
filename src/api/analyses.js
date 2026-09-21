@@ -1,4 +1,6 @@
-import { ApiError, request } from './http'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { ApiError, getApiUrl, refreshAccessToken, request } from './http'
+import { getAccessToken } from '../auth/authStorage'
 
 const ANALYSES_PATH = '/api/analyses'
 
@@ -8,7 +10,9 @@ const isAnalysisId = (value) => {
 }
 
 export const getAnalysisId = (response) => {
-  const value = response?.data ?? response?.analysisId
+  const value = isAnalysisId(response)
+    ? response
+    : response?.data ?? response?.analysisId
   return isAnalysisId(value) ? String(value).trim() : null
 }
 
@@ -137,4 +141,156 @@ export const executeFestivalPlanAnalysis = (planId, options = {}) => {
     }
     return response
   })
+}
+
+class AnalysisProgressAuthError extends Error {
+  constructor(status) {
+    super('SSE authentication failed')
+    this.name = 'AnalysisProgressAuthError'
+    this.status = status
+  }
+}
+
+class AnalysisProgressHttpError extends Error {
+  constructor(status) {
+    super(`SSE request failed (${status})`)
+    this.name = 'AnalysisProgressHttpError'
+    this.status = status
+  }
+}
+
+class AnalysisProgressProtocolError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'AnalysisProgressProtocolError'
+  }
+}
+
+const isAbortError = (error) =>
+  error?.name === 'AbortError' || error?.cause?.name === 'AbortError'
+
+const isTerminalProgress = (progress) =>
+  progress?.step === 'ANALYSIS' &&
+  (progress?.status === 'COMPLETED' || progress?.status === 'FAILED')
+
+const getProgressHeaders = () => {
+  const token = getAccessToken()
+  return {
+    Accept: 'text/event-stream',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
+export const streamAnalysisProgress = async (
+  analysisId,
+  { signal, onProgress } = {},
+) => {
+  if (!isAnalysisId(analysisId)) {
+    throw new ApiError('분석 진행 데이터 조회에 필요한 analysisId가 유효하지 않습니다.')
+  }
+
+  const connectionController = new AbortController()
+  const abortConnection = () => connectionController.abort()
+  signal?.addEventListener('abort', abortConnection, { once: true })
+
+  let terminalProgress = null
+  let authRetryCount = 0
+
+  try {
+    while (!terminalProgress) {
+      try {
+        await fetchEventSource(
+          getApiUrl(
+            `${ANALYSES_PATH}/${encodeURIComponent(String(analysisId).trim())}/progress`,
+          ),
+          {
+            method: 'GET',
+            headers: getProgressHeaders(),
+            signal: connectionController.signal,
+            openWhenHidden: true,
+            async onopen(response) {
+              if (response.ok) return
+              if (response.status === 401) {
+                throw new AnalysisProgressAuthError(response.status)
+              }
+              throw new AnalysisProgressHttpError(response.status)
+            },
+            onmessage(event) {
+              if (!event.data) return
+
+              let progress
+              try {
+                progress = JSON.parse(event.data)
+              } catch (error) {
+                throw new AnalysisProgressProtocolError(
+                  'SSE progress event is not valid JSON',
+                  { cause: error },
+                )
+              }
+
+              if (!progress || typeof progress !== 'object') {
+                throw new AnalysisProgressProtocolError(
+                  'SSE progress event has an invalid shape',
+                )
+              }
+
+              onProgress?.(progress)
+              if (isTerminalProgress(progress)) {
+                terminalProgress = progress
+                connectionController.abort()
+              }
+            },
+            onclose() {
+              if (!terminalProgress) {
+                throw new TypeError('SSE connection closed before analysis completed')
+              }
+            },
+            onerror(error) {
+              if (terminalProgress) throw new Error('SSE stream completed')
+              if (error instanceof AnalysisProgressAuthError) throw error
+              if (error instanceof AnalysisProgressProtocolError) throw error
+              if (error instanceof AnalysisProgressHttpError && error.status < 500) {
+                throw error
+              }
+              if (isAbortError(error)) throw error
+
+              // fetch-event-source will reconnect after transient network and
+              // server failures. The current analysisId is intentionally kept.
+              return 1500
+            },
+          },
+        )
+      } catch (error) {
+        if (terminalProgress) break
+        if (isAbortError(error)) throw error
+
+        if (error instanceof AnalysisProgressAuthError && authRetryCount < 1) {
+          authRetryCount += 1
+          await refreshAccessToken()
+          continue
+        }
+
+        if (error instanceof AnalysisProgressAuthError) {
+          throw new ApiError('SSE 인증 처리에 실패했습니다.', {
+            status: error.status,
+            cause: error,
+          })
+        }
+
+        if (error instanceof AnalysisProgressHttpError) {
+          throw new ApiError('분석 진행 연결에 실패했습니다.', {
+            status: error.status,
+            cause: error,
+          })
+        }
+
+        throw error
+      }
+    }
+  } finally {
+    signal?.removeEventListener('abort', abortConnection)
+    connectionController.abort()
+  }
+
+  return terminalProgress
 }

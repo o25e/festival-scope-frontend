@@ -106,6 +106,14 @@
   border-width: 0 1.6px 1.6px 0;
   transform: rotate(45deg) translate(-1px, -1px);
 }
+.an-item.fail {
+  color: var(--bad, #bd3d3d);
+  background: var(--surface);
+}
+.an-item.fail .dot {
+  border-color: var(--bad, #bd3d3d);
+  background: var(--bad, #bd3d3d);
+}
 .card.sel {
   border-color: var(--brand);
   box-shadow: 0 0 0 1px var(--brand);
